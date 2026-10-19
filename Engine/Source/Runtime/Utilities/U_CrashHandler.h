@@ -183,3 +183,5 @@ public:
         }
     }
 };
+
+using Crash = CrashHandler; // Alias for easier access (Crash::Init, Crash::Check, Crash::Trigger)

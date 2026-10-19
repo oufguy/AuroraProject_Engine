@@ -345,3 +345,5 @@ public:
         }
     };
 };
+
+using MathEx = Math::Extended; // Alias for easier access to Math::Extended functions

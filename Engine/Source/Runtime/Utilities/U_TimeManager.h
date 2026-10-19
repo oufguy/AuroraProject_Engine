@@ -132,3 +132,5 @@ public:
         return false;
     }
 };
+
+using Time = TimeManager; // Alias for easier access (Time::Update(), Time::Get_DeltaTime(), etc.)

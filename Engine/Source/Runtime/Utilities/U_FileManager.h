@@ -138,3 +138,5 @@ public:
         return removed;
     }
 };
+
+using File = FileManager; // Alias for easier access (File::Open, File::Write, File::Delete, etc.)
