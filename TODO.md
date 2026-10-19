@@ -8,7 +8,7 @@
 * ~~Math Module (`U_Math` / `Math::`)~~ (`PI`, `Clamp`, `Lerp`, `Math::Extended::`)
 * ~~Time Manager (`M_Time` / `Time::`)~~ (`DeltaTime`, FPS, Timestamps, Cooldowns)
 * ~~Crash Manager (`M_Crash` / `Crash::`)~~ (Catch hardware crashes, stacktrace file/line, dated `Crash.log`)
-* Config Manager (`M_Config` / `Config::` - Save/load Client & Server settings)
+* ~~Config Manager (`M_Config` / `Config::` - Save/load Client & Server settings)~~
 * Input Module (`I_Input` - Keyboard + Mouse)
 
 ## Later Stage (Engine & World)
