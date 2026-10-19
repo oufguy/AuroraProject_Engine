@@ -25,16 +25,8 @@ AuroraProject/
 │   │   │   └── pch.h                # Precompiled standard C++23 headers
 │   │   │
 │   │   └── Runtime/
-│   │       ├── Core.h / Core.cpp    # Master engine include hub (<Core.h>)
+│   │       ├── Core .h/.cpp         # Master engine include hub (<Core.h>)
 │   │       ├── Utilities/           # Core foundation modules:
-│   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
-│   │       │   ├── U_Colors.h       # Color presets & console log palette
-│   │       │   ├── U_Log.h          # Thread-safe logger with strict LogLevel (Core, Developer, User) & PRINT()
-│   │       │   ├── U_FileManager.h  # Thread-safe file I/O (Open, Write, Close, Clean, Delete)
-│   │       │   ├── U_Math.h         # Base Math:: & 2D/3D Math::Extended:: (Angles, Vectors, Distance, Lerp, Random)
-│   │       │   ├── U_TimeHandler.h  # High-precision Time:: (DeltaTime, FPS, TotalTime, Timestamps, Cooldowns)
-│   │       │   └── U_CrashHandler.h # Cross-platform Crash:: (Hardware signal catcher, Stacktrace file/line, Check)
-│   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
 │   │       ├── Input/               # Keyboard & Mouse input handling
