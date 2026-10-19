@@ -24,7 +24,7 @@ target_sources(EngineSource
     ${ENGINE_SOURCES}
 )
 
-# Auto-grab Engine/Source and every subfolder inside it
+# Auto-grab Engine/Source and every subfolder inside it (Utilities, Managers, RHI, etc.)
 file(GLOB_RECURSE ENGINE_ALL_PATHS CONFIGURE_DEPENDS LIST_DIRECTORIES true "Engine/Source/*")
 set(ENGINE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Source")
 foreach(item ${ENGINE_ALL_PATHS})
