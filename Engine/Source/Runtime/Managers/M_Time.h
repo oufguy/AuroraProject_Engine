@@ -5,7 +5,7 @@
 #include <U_Math.h>
 
 // ============================================================================
-// Game & Server Time (DeltaTime, FPS, Uptime, Cooldowns, Sleep)
+// Game & Server Time Manager (DeltaTime, FPS, Uptime, Cooldowns, Sleep)
 // ============================================================================
 class TimeManager {
 private:
@@ -35,7 +35,7 @@ public:
 
     // Call this ONCE at the very top of your Client or Server while(running) loop!
     // Automatically updates DeltaTime, TotalTime, and calculates FPS every 1 second.
-    // Example: TimeHandler::Update();
+    // Example: Time::Update();
     static inline void Update() {
         TimePoint now = Clock::now();
 
@@ -61,24 +61,24 @@ public:
     }
 
     // Pauses the current thread for 'milliseconds' (Saves CPU in Server loops or caps FPS!).
-    // Example: TimeHandler::Sleep(10);
+    // Example: Time::Sleep(10);
     static inline void Sleep(DWORD milliseconds) {
         std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
     }
 
     // ========================================================================
-    // Get_... (DeltaTime, FPS, Total Uptime)
+    // Get_... (DeltaTime, FPS, Total Uptime, Timestamp)
     // ========================================================================
 
     // Returns the time in Seconds between the last frame and this frame (e.g. 0.016f at 60 FPS).
     // Multiply all movement/speeds by this so 60 FPS and 240 FPS move at the exact same speed!
-    // Example: FLOAT dt = TimeHandler::Get_DeltaTime();
+    // Example: FLOAT dt = Time::Get_DeltaTime();
     static inline FLOAT Get_DeltaTime() {
         return s_DeltaTime;
     }
 
     // Returns how many frames (Client) or ticks (Server) ran in the last second.
-    // Example: INT fps = TimeHandler::Get_FPS();
+    // Example: INT fps = Time::Get_FPS();
     static inline INT Get_FPS() {
         return s_CurrentFPS;
     }
@@ -133,5 +133,5 @@ public:
     }
 };
 
-using Time = TimeManager; // Alias for easier access (Time::Update(), Time::Get_DeltaTime(), etc.)
-using Managers_Time = TimeManager; // Alias for easier access (Managers_Time::Update(), etc.)
+using Time   = TimeManager; // Short alias (Time::Update(), Time::Get_DeltaTime(), etc.)
+using M_Time = TimeManager; // Prefix alias (type M_ in autocomplete to see all Managers!)

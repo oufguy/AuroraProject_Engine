@@ -2,7 +2,7 @@
 
 #include <pch.h>
 #include <U_Variables.h>
-#include <U_Log.h>
+#include <M_Log.h>
 
 // Public path type so callers can pass paths easily
 using FilePath = std::filesystem::path;
@@ -13,26 +13,26 @@ using FilePath = std::filesystem::path;
 class FileManager {
 private:
     // ---- Internal Type Aliases (Hidden inside FileManager) ----
-    using InputFile = std::ifstream;
+    using InputFile  = std::ifstream;
     using OutputFile = std::ofstream;
-    using ErrorCode = std::error_code;
+    using ErrorCode  = std::error_code;
     using StreamSize = std::streamsize;
-    using Mutex = std::mutex;
+    using Mutex      = std::mutex;
     using ScopedLock = std::lock_guard<std::mutex>;
 
     // ---- Internal File Mode & Seek Flags (Plain English names!) ----
-    static constexpr auto ModeRead = std::ios::in | std::ios::binary;
+    static constexpr auto ModeRead      = std::ios::in | std::ios::binary;
     static constexpr auto ModeOverwrite = std::ios::out | std::ios::trunc | std::ios::binary;
-    static constexpr auto ModeAppend = std::ios::out | std::ios::app | std::ios::binary;
-    static constexpr auto FileStart = std::ios::beg;
-    static constexpr auto FileEnd = std::ios::end;
+    static constexpr auto ModeAppend    = std::ios::out | std::ios::app | std::ios::binary;
+    static constexpr auto FileStart     = std::ios::beg;
+    static constexpr auto FileEnd       = std::ios::end;
 
     // ---- Internal Thread Lock ----
     static inline Mutex g_FileMutex;
 
 public:
     // 1. Open and load a file into RAM (returns error message or empty if file doesn't exist)
-    // Example: String data = FileManager::Open("Assets/Ship.awotex");
+    // Example: String data = File::Open("Assets/Ship.awotex");
     static inline String Open(const FilePath &filePath) {
         String Msg;
 
@@ -64,8 +64,8 @@ public:
     }
 
     // 2. Write data to a file (auto-creates folder/file; set bOverWrite = true to overwrite!)
-    // Example (Overwrite): FileManager::Write("Config/Server.ini", "Port=15100\n");
-    // Example (Append):    FileManager::Write("Logs/Server.log", "[INFO] Started!\n", false);
+    // Example (Overwrite): File::Write("Config/Server.ini", "Port=15100\n", true);
+    // Example (Append):    File::Write("Logs/Server.log", "[INFO] Started!\n", false);
     static inline BOOL Write(const FilePath &filePath, StringView data, BOOL bOverWrite = false) {
         String Msg;
 
@@ -95,7 +95,7 @@ public:
     }
 
     // 3. Close a loaded file in RAM (frees memory immediately)
-    // Example: FileManager::Close(data);
+    // Example: File::Close(data);
     static inline void Close(String &loadedData) {
         String Msg;
         size_t freedBytes = loadedData.capacity();
@@ -108,7 +108,7 @@ public:
     }
 
     // 4. Empty a file on disk (0 bytes) without deleting it
-    // Example: FileManager::Clean("Logs/Server.log");
+    // Example: File::Clean("Logs/Server.log");
     static inline BOOL Clean(const FilePath &filePath) {
         String Msg;
 
@@ -121,7 +121,7 @@ public:
     }
 
     // 5. Delete a file or folder from disk
-    // Example: FileManager::Delete("Temp/Cache.tmp");
+    // Example: File::Delete("Temp/Cache.tmp");
     static inline BOOL Delete(const FilePath &path) {
         String Msg;
 
@@ -139,5 +139,5 @@ public:
     }
 };
 
-using File = FileManager; // Alias for easier access (File::Open, File::Write, File::Delete, etc.)
-using Managers_File = FileManager; // Alias for easier access (Managers_File::Open, etc.)
+using File   = FileManager; // Short alias (File::Open, File::Write, File::Delete, etc.)
+using M_File = FileManager; // Prefix alias (type M_ in autocomplete to see all Managers!)

@@ -2,12 +2,17 @@
 
 #include <pch.h>
 
+// ============================================================================
+// Utilities (Types, Colors, Math)
+// ============================================================================
 #include <U_Variables.h>
-#include <U_Math.h>
-#include <U_TimeManager.h>
-
 #include <U_Colors.h>
+#include <U_Math.h>
 
-#include <U_Log.h>
-#include <U_FileManager.h>
-#include <U_CrashManager.h>
+// ============================================================================
+// Engine Managers (Log, File, Time, Crash)
+// ============================================================================
+#include <M_Log.h>
+#include <M_File.h>
+#include <M_Time.h>
+#include <M_Crash.h>

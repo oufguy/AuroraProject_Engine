@@ -8,7 +8,7 @@ A lightweight, cross-platform C++23 application & client-server engine built fro
 
 * **`Engine/`** is completely application-agnostic: It has zero knowledge of specific `Game`, `Client`, or `Server` rules.
 * **`Game/`** modules (`Client`, `Server`, `Shared`) include `<Core.h>` and depend on `EngineSource`, never the other way around.
-* **Headless Servers** only use core/network engine modules (`Utilities`, `Network`) and never require graphics or audio hardware.
+* **Headless Servers** only use core/network engine modules (`Utilities`, `Managers`, `Network`) and never require graphics or audio hardware.
 
 ---
 
@@ -25,8 +25,19 @@ AuroraProject/
 │   │   │   └── pch.h                # Precompiled standard C++23 headers
 │   │   │
 │   │   └── Runtime/
-│   │       ├── Core .h/.cpp         # Master engine include hub (<Core.h>)
-│   │       ├── Utilities/           # Core foundation modules:
+│   │       ├── Core.h / Core.cpp    # Master engine include hub (<Core.h>)
+│   │       │
+│   │       ├── Utilities/           # Passive data types, colors & math formulas (U_ prefix)
+│   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
+│   │       │   ├── U_Colors.h       # Color presets & console log palette
+│   │       │   └── U_Math.h         # Base Math:: & 2D/3D Math::Extended:: (Angles, Vectors, Distance, Lerp, Random)
+│   │       │
+│   │       ├── Managers/            # Active engine systems & handlers (M_ prefix)
+│   │       │   ├── M_Log.h          # LogManager   (alias Log::)   — Thread-safe logger with strict LogLevel & PRINT()
+│   │       │   ├── M_File.h         # FileManager  (alias File::)  — Thread-safe file I/O (Open, Write, Close, Clean, Delete)
+│   │       │   ├── M_Time.h         # TimeManager  (alias Time::)  — High-precision DeltaTime, FPS, Uptime, Timestamps, Cooldowns
+│   │       │   └── M_Crash.h        # CrashManager (alias Crash::) — Cross-platform hardware crash catcher & stacktrace reporter
+│   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
 │   │       ├── Input/               # Keyboard & Mouse input handling
@@ -63,7 +74,7 @@ AuroraProject/
 | :--- | :--- | :--- | :--- |
 | **`Debug`** | `_DEBUG` | `LogLevel::Core` | Shows **all** logs (`Core`, `Developer`, `User`) for low-level engine debugging. |
 | **`Development`** | `_DEVELOPMENT` | `LogLevel::Developer` | Optimized with debug symbols; hides internal `Core` spam and shows `Developer` + `User` logs. |
-| **`Release`** | `_RELEASE` | `LogLevel::User` | Maximum optimization; only outputs `User` logs unless unlocked via `LogSystem::Set_LogLevel()`. |
+| **`Release`** | `_RELEASE` | `LogLevel::User` | Maximum optimization; only outputs `User` logs unless unlocked via `Log::Set_LogLevel()`. |
 
 ---
 
@@ -75,10 +86,10 @@ To create an application using the engine, create `Game/Client/Client.cpp` and i
 #include <Core.h>
 
 int main() {
-    // 1. Initialize Crash Handler (auto-creates dated Crash_DD.MM.YY_HH.MM.log on crash)
+    // 1. Initialize Crash Manager (auto-creates dated ClientCrash_DD.MM.YY_HH.MM.log on crash)
     Crash::Init("Logs/ClientCrash.log");
 
-    // 2. Quick developer print (shown in Debug & Development builds)
+    // 2. Quick print
     PRINT("Client Initialized! PI = {}", Math::PI);
 
     // 3. Main Application Loop

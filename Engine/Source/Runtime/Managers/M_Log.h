@@ -16,11 +16,11 @@ inline std::ostream &operator<<(std::ostream &os, const COLOR &c) {
 // Log Categories & Strict Access Levels
 // ============================================================================
 enum LogType : BYTE {
-    Print,  // Gray   [PRINT]
-    Info,   // Green  [INFO]
-    Warn,   // Yellow [WARN]
-    Error,  // Red   [ERROR]
-	Fatal   // Magenta [FATAL]
+    Print,  // Gray    [PRINT]
+    Info,   // Green   [INFO]
+    Warn,   // Yellow  [WARN]
+    Error,  // Red     [ERROR]
+    Fatal   // Magenta [FATAL]
 };
 
 enum LogLevel : BYTE {
@@ -30,9 +30,9 @@ enum LogLevel : BYTE {
 };
 
 // ============================================================================
-// Internal Log System
+// Log Manager (Thread-Safe Console Logger & Level Filter)
 // ============================================================================
-class LogSystem {
+class LogManager {
 private:
     using Mutex      = std::mutex;
     using ScopedLock = std::lock_guard<std::mutex>;
@@ -42,14 +42,14 @@ private:
 #if defined(_RELEASE)
     static inline LogLevel s_CurrentLevel = User;      // Release: Only User logs by default
 #elif defined(_DEVELOPMENT)
-    static inline LogLevel s_CurrentLevel = Developer; // Development: Developer + Admin + User logs
+    static inline LogLevel s_CurrentLevel = Developer; // Development: Developer + User logs
 #else
     static inline LogLevel s_CurrentLevel = Core;      // Debug: All logs including Engine Core
 #endif
 
 public:
     // Changes the active LogLevel filter at runtime (e.g. unlock Core logs in Release if needed!).
-    // Example: LogSystem::Set_LogLevel(Core);
+    // Example: Log::Set_LogLevel(Core);
     static inline void Set_LogLevel(LogLevel level) {
         s_CurrentLevel = level;
     }
@@ -61,7 +61,7 @@ public:
 
     static inline void Output(LogType type, LogLevel level, StringView message) {
         // Filter out logs below the active configuration level!
-        // (e.g. In Release [User=3], Core[0] and Developer[1] are skipped automatically)
+        // (e.g. In Release [User=2], Core[0] and Developer[1] are skipped automatically)
         if (level < s_CurrentLevel) return;
 
         ScopedLock lock(g_LogMutex);
@@ -87,8 +87,12 @@ public:
     }
 };
 
+using Log       = LogManager; // Short alias (Log::Set_LogLevel, Log::Get_LogLevel)
+using M_Log     = LogManager; // Prefix alias (type M_ in autocomplete to see all Managers!)
+using LogSystem = LogManager; // Backwards-compatible alias
+
 // ============================================================================
-// Global LOG(...) Functions (Strictly Enforces LogLevel!)
+// Global LOG(...) & PRINT(...) Functions
 // ============================================================================
 
 // 1. Log with (LogType, LogLevel, "message", ...)
@@ -96,12 +100,12 @@ public:
 // Example: LOG(Error, Core, "Vulkan device lost!");
 template<typename... Args>
 inline void LOG(LogType type, LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-    LogSystem::Output(type, level, std::format(fmt, std::forward<Args>(args)...));
+    LogManager::Output(type, level, std::format(fmt, std::forward<Args>(args)...));
 }
 
-// 2. Quick Developer Print: PRINT("message", ...) — Always User Level!
+// 2. Quick Print: PRINT("message", ...) — Always User Level!
 // Example: PRINT("Quick test value: {}", x);
 template<typename... Args>
 inline void PRINT(std::format_string<Args...> fmt, Args&&... args) {
-    LogSystem::Output(Print, User, std::format(fmt, std::forward<Args>(args)...));
+    LogManager::Output(Print, User, std::format(fmt, std::forward<Args>(args)...));
 }
