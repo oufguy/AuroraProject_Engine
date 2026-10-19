@@ -144,10 +144,21 @@ public:
         LOG(Info, LogLevel::Core, "Crash::Init registered crash handlers -> {}", s_CrashLogPath.string());
     }
 
+
     // ========================================================================
     // Manual Crash & Strict Safety Checks (Auto-captures File, Line, Function!)
     // ========================================================================
 
+	// ForceCrash if not a _RELEASE build (Debug or Development). In Release, this does nothing.
+	static inline void ForceCrash(const SourceLoc loc = SourceLoc::current()) {
+#if !defined(_RELEASE)
+		Trigger("Forced Crash (Debug/Dev Build)", loc);
+#else
+		LOG(Warn, LogLevel::User, "Crash::ForceCrash() called in Release build — ignoring!");
+#endif
+	}
+
+private:
     // Immediately halts the engine, logs [FATAL], and writes the full report to Crash.log.
     // Automatically records the exact File, Line, and Function where Trigger() was called!
     // Example: Crash::Trigger("Vulkan GPU Device Lost!");

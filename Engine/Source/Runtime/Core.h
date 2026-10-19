@@ -10,9 +10,10 @@
 #include <U_Math.h>
 
 // ============================================================================
-// Engine Managers (Log, File, Time, Crash)
+// Engine Managers (Log, File, Time, Crash, Config)
 // ============================================================================
 #include <M_Log.h>
 #include <M_File.h>
 #include <M_Time.h>
 #include <M_Crash.h>
+#include <M_Config.h>
