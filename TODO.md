@@ -7,8 +7,8 @@
 * ~~Log Module (`U_Log`)~~ (`LOG(Info/Warn/Error/Print)`)
 * ~~Math Module (`U_Math`)~~ (`PI`, `Clamp`, `Lerp`, `Camera::View`)
 * ~~Extend Math Module~~ (`Math::Extended::`)
-* ~~Time Module (`U_TimeHandler` - `DeltaTime`, FPS, Timers)~~
-* ~~Crash Handler (`U_CrashHandler` - Catch crashes, write `Crash.log` + screen popup)~~
+* ~~Time Module (`U_TimeManager` - `DeltaTime`, FPS, Timers)~~
+* ~~Crash Handler (`U_CrashHandler` - Catch crashes, write `Crash.log`)~~
 * Config Manager (`U_Config` - Save/load Client & Server settings)
 * Input Module (`I_Input` - Keyboard + Mouse)
 

@@ -10,4 +10,4 @@
 
 #include <U_Log.h>
 #include <U_FileManager.h>
-#include <U_CrashHandler.h>
+#include <U_CrashManager.h>

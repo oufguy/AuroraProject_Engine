@@ -134,3 +134,4 @@ public:
 };
 
 using Time = TimeManager; // Alias for easier access (Time::Update(), Time::Get_DeltaTime(), etc.)
+using Managers_Time = TimeManager; // Alias for easier access (Managers_Time::Update(), etc.)

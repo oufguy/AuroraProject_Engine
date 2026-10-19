@@ -9,7 +9,7 @@
 // ============================================================================
 // Cross-Platform Crash & Assert Handler (100% Pure C++23 — Windows & Linux)
 // ============================================================================
-class CrashHandler {
+class CrashManager {
 private:
     using SourceLoc  = std::source_location;
     using StackTrace = std::stacktrace;
@@ -182,6 +182,22 @@ public:
             Trigger(reason, loc);
         }
     }
+
+	// Force a crash for testing purposes (only in Debug/Development builds).
+	// Example: Crash::ForceCrash();
+	static inline void ForceCrash(const SourceLoc loc = SourceLoc::current()) {
+        String Msg;
+#if defined(_DEBUG) || defined(_DEVELOPMENT)
+        Msg = StringFormat("Crash::ForceCrash() has Been Triggered!");
+
+		INT *pointer = nullptr;
+		*pointer = 42; // This will cause a crash (SIGSEGV)
+#else
+        LOG(Warn, LogLevel::User, "Crash::ForceCrash() called in non-Debug build.");
+#endif
+	}
+	// Force Crash (for testing purposes). Example: Crash::ForceCrash();
 };
 
-using Crash = CrashHandler; // Alias for easier access (Crash::Init, Crash::Check, Crash::Trigger)
+using Crash = CrashManager; // Alias for easier access (Crash::Init, Crash::Check, Crash::Trigger)
+using Managers_Crash = CrashManager; // Alias for easier access (Managers_Crash::Init, etc.)

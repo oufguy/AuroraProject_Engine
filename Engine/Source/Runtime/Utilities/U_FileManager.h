@@ -140,3 +140,4 @@ public:
 };
 
 using File = FileManager; // Alias for easier access (File::Open, File::Write, File::Delete, etc.)
+using Managers_File = FileManager; // Alias for easier access (Managers_File::Open, etc.)
