@@ -1,46 +1,105 @@
+# AuroraProject Engine — Architecture & Directory Guide
 
-# Project Architecture & Directory Guide
-
-This repository follows a modular, early-2000s inspired engine design (similar to Unreal Engine 2/3 and id Tech architectures). The primary goal is complete separation between the reusable **Engine** platform and the project-specific **Game** implementation.
+A lightweight, cross-platform C++23 application & client-server engine built from scratch for high performance. Designed with a strict, developer-friendly API, zero bloat, and native **Windows** & **Linux** support.
 
 ---
 
 ## High-Level Dependency Rule
 
-* **Engine** is completely game-agnostic: It has zero knowledge of `Game`, `Client`, `Server`, or game gameplay rules.
-* **Game** modules (`Client`, `Server`, `Shared`) depend on `Engine` modules, never the other way around.
-* **Headless Servers** must only link against headless engine modules (`Core`, `Network`) and must never link against graphics/audio pipelines (`RHI`, `Renderer`, `Audio`, `Input`).
+* **`Engine/`** is completely application-agnostic: It has zero knowledge of specific `Game`, `Client`, or `Server` rules.
+* **`Game/`** modules (`Client`, `Server`, `Shared`) include `<Core.h>` and depend on `EngineSource`, never the other way around.
+* **Headless Servers** only use core/network engine modules (`Utilities`, `Network`) and never require graphics or audio hardware.
 
 ---
 
-## Directory Breakdown
-```
-MyGameProject/
-├── Engine/                      # Reusable, standalone engine framework
-│   ├── Source/Runtime/
-│   │   ├── Audio/               # Sound system abstraction (DirectSound, OpenAL, FMOD)
-│   │   ├── Utilities/           # Math, memory management, containers, logging, filesystem
-│   │   ├── Framework/           # Generic Entity/Component model, game loop, world structure
-│   │   ├── Input/               # Low-level input polling (DirectInput, RawInput, Win32)
-│   │   ├── Network/             # Socket wrappers, platform I/O (IOCP / epoll), TCP/UDP abstractions
-│   │   ├── Renderer/            # Scene manager, material system, mesh rendering passes
-│   │   └── RHI/                 # Render Hardware Interface (Direct3D 9 / OpenGL abstraction)
-│   ├── ThirdParty/              # Core-level external dependencies (e.g., stb, zlib)
-│   └── Tools/                   # Asset packaging, pipeline tools, protocol compilers
+## Directory Breakdown (`Engine/` + Example `Game/` Structure)
+
+```text
+AuroraProject/
+├── CMakeLists.txt                   # Root CMake build script (Static Engine + Client/Server targets)
+├── CMakePresets.json                # Build configurations: Debug, Development, Release
 │
-├── Game/                        # Project-specific logic and binaries
-│   ├── Client/                  # Game client executable (links Renderer, Audio, Input, Network)
-│   │   ├── Gameplay/            # Camera handling, client-side prediction, player animation logic
-│   │   └── Interface/           # UI screens, HUD, in-game menus
+├── Engine/                          # Reusable, standalone open-source engine framework
+│   ├── Source/
+│   │   ├── Shared/
+│   │   │   └── pch.h                # Precompiled standard C++23 headers
+│   │   │
+│   │   └── Runtime/
+│   │       ├── Core.h / Core.cpp    # Master engine include hub (<Core.h>)
+│   │       ├── Utilities/           # Core foundation modules:
+│   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
+│   │       │   ├── U_Colors.h       # Color presets & console log palette
+│   │       │   ├── U_Log.h          # Thread-safe logger with strict LogLevel (Core, Developer, User) & PRINT()
+│   │       │   ├── U_FileManager.h  # Thread-safe file I/O (Open, Write, Close, Clean, Delete)
+│   │       │   ├── U_Math.h         # Base Math:: & 2D/3D Math::Extended:: (Angles, Vectors, Distance, Lerp, Random)
+│   │       │   ├── U_TimeHandler.h  # High-precision Time:: (DeltaTime, FPS, TotalTime, Timestamps, Cooldowns)
+│   │       │   └── U_CrashHandler.h # Cross-platform Crash:: (Hardware signal catcher, Stacktrace file/line, Check)
+│   │       │
+│   │       ├── Audio/               # Sound system abstraction
+│   │       ├── Framework/           # Entity/Component model, application loop, world structure
+│   │       ├── Input/               # Keyboard & Mouse input handling
+│   │       ├── Network/             # Cross-platform TCP/UDP socket abstractions
+│   │       ├── Renderer/            # Scene manager, materials, mesh & UI rendering passes
+│   │       └── RHI/                 # Render Hardware Interface (Vulkan backend)
 │   │
-│   ├── Server/                  # Dedicated server executables (headless, links Core + Network only)
-│   │   ├── Common/              # Inter-server communication and shared server base logic
-│   │   ├── FieldServer/         # World maps, spatial partitioning, zone game loops
-│   │   ├── IMServer/            # Instant messaging, whisper, guild/chat channels
-│   │   ├── NPCServer/           # Monster AI logic, pathfinding, spawn management
-│   │   └── PreServer/           # Authentication, gateway routing, account login
-│   │
-│   └── Shared/                  # Code shared exclusively across Client and Servers
-│       ├── GameData/            # Shared balance stats, database definitions, item formulas
-│       └── Protocol/            # Binary packet layouts, opcode enums, serialization code
+│   ├── ThirdParty/                  # External header/static dependencies
+│   └── Tools/                       # Asset packaging & pipeline tools
+│
+└── Game/                            # Example application / game workspace (kept separate from Engine)
+    ├── Client/                      # Client executable target (AWO_Client)
+    │   ├── Client.cpp               # Client entry point (includes <Core.h>)
+    │   ├── Gameplay/                # Camera, movement, client-side logic
+    │   └── Interface/               # UI screens, HUD, menus
+    │
+    ├── Server/                      # Dedicated headless server targets
+    │   ├── Common/                  # Shared inter-server logic
+    │   ├── FieldServer/             # Main world/zone server (Main.cpp)
+    │   ├── IMServer/                # Chat & messaging server
+    │   ├── NPCServer/               # AI & spawn controller server
+    │   └── PreServer/               # Login & gateway routing server
+    │
+    └── Shared/                      # Shared definitions between Client and Servers
+        ├── GameData/                # Shared data structures & constants
+        └── Protocol/                # Network packet opcodes & layouts
+```
+
+---
+
+## Build Configurations (`CMakePresets.json`)
+
+| Preset | Macro Defined | Default `LogLevel` | Purpose |
+| :--- | :--- | :--- | :--- |
+| **`Debug`** | `_DEBUG` | `LogLevel::Core` | Shows **all** logs (`Core`, `Developer`, `User`) for low-level engine debugging. |
+| **`Development`** | `_DEVELOPMENT` | `LogLevel::Developer` | Optimized with debug symbols; hides internal `Core` spam and shows `Developer` + `User` logs. |
+| **`Release`** | `_RELEASE` | `LogLevel::User` | Maximum optimization; only outputs `User` logs unless unlocked via `LogSystem::Set_LogLevel()`. |
+
+---
+
+## Quick Example (`Game/Client/Client.cpp`)
+
+To create an application using the engine, create `Game/Client/Client.cpp` and include `<Core.h>`:
+
+```cpp
+#include <Core.h>
+
+int main() {
+    // 1. Initialize Crash Handler (auto-creates dated Crash_DD.MM.YY_HH.MM.log on crash)
+    Crash::Init("Logs/ClientCrash.log");
+
+    // 2. Quick developer print (shown in Debug & Development builds)
+    PRINT("Client Initialized! PI = {}", Math::PI);
+
+    // 3. Main Application Loop
+    DOUBLE lastLogTime = 0.0;
+    while (true) {
+        Time::Update();
+
+        // Print DeltaTime & FPS once every 1.0 second
+        if (Time::Check_Cooldown(lastLogTime, 1.0)) {
+            LOG(Info, LogLevel::Developer, "DeltaTime: {}s | FPS: {}", Time::Get_DeltaTime(), Time::Get_FPS());
+        }
+    }
+
+    return 0;
+}
 ```
