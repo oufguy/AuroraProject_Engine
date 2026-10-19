@@ -1,0 +1,35 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build/Intermediate/${presetName}",
+      "architecture": { "value": "x64", "strategy": "external" }
+    },
+    {
+      "name": "Debug",
+      "displayName": "Debug (Core Logs)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "Development",
+      "displayName": "Development (Developer Logs)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "Release",
+      "displayName": "Release (User Logs)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "Debug", "configurePreset": "Debug" },
+    { "name": "Development", "configurePreset": "Development" },
+    { "name": "Release", "configurePreset": "Release" }
+  ]
+}
