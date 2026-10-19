@@ -7,7 +7,7 @@
 // ============================================================================
 // Game & Server Time (DeltaTime, FPS, Uptime, Cooldowns, Sleep)
 // ============================================================================
-class Time {
+class TimeManager {
 private:
     // Internal high-precision clock (steady_clock never jumps backward if OS clock changes!)
     using Clock     = std::chrono::steady_clock;

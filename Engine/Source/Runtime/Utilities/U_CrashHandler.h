@@ -4,12 +4,12 @@
 #include <U_Variables.h>
 #include <U_Log.h>
 #include <U_FileManager.h>
-#include <U_TimeHandler.h>
+#include <U_TimeManager.h>
 
 // ============================================================================
 // Cross-Platform Crash & Assert Handler (100% Pure C++23 — Windows & Linux)
 // ============================================================================
-class Crash {
+class CrashHandler {
 private:
     using SourceLoc  = std::source_location;
     using StackTrace = std::stacktrace;
@@ -24,7 +24,7 @@ private:
         String ext      = s_CrashLogPath.extension().string();
         if (ext.empty()) ext = ".log";
 
-        String datedName = StringFormat("{}_{}{}", stem, Time::Get_TimeStamp(true), ext);
+        String datedName = StringFormat("{}_{}{}", stem, TimeManager::Get_TimeStamp(true), ext);
         return folder.empty() ? FilePath(datedName) : (folder / datedName);
     }
 
