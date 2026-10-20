@@ -15,8 +15,9 @@
 * ~~Threading Decision~~ (Single-threaded by design; servers scale by process. `M_Thread` job system only if ever truly needed)
 
 ## Later Stage (Engine & World)
-* Window Manager (`R_Window` - Create OS window via SDL3, auto-enables `Input::Set_WindowActive`) <- **NEXT**
-* Render Handler (`RHI` - Vulkan backend)
+* ~~Window Manager (`M_Window` / `Window::` - Cross-platform SDL3 window, modes, focus/minimize, mouse lock)~~
+* ~~Render Handler (`RHI` - Vulkan 1.3 Core: `R_Device`, Dynamic Rendering `R_Swapchain`)~~
+* Graphics Pipeline & Shaders (`R_Pipeline`, `R_Shader` - SPIR-V Shaders & Mesh Drawing) <- **NEXT**
 * Asset Manager (`Asset::Get_Mesh("Name")` - Load all / per-region behind a loading screen, BC-compressed `.dds` textures)
 * Culling & Spatial Grid (Frustum/occlusion culling + distance grid to boost FPS)
 * Physics Module (Lightweight; separate Ground Box & Fly Hitbox like 2000s flying MMOs)

@@ -57,10 +57,15 @@ target_precompile_headers(EngineSource
 
 # Required on Linux (GCC/Clang) for std::thread and std::mutex (automatic no-op on Windows)
 find_package(Threads REQUIRED)
+
+# ---------- ThirdParty: Vulkan SDK ----------
+find_package(Vulkan REQUIRED)
+
 target_link_libraries(EngineSource
   PUBLIC
     Threads::Threads
     SDL3::SDL3-static
+    Vulkan::Vulkan
 )
 
 # Pass configuration macros (_DEBUG, _DEVELOPMENT, _RELEASE) to Engine, Client, and Server

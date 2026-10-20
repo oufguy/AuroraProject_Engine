@@ -9,26 +9,28 @@
 // Boolean (true / false). Example: BOOL bIsFlying = true;
 using BOOL = bool;
 
-// 1-Byte Unsigned (0 to 255) — Raw packet/file bytes, colors, level.
+// 1-Byte Unsigned (0 to 255) â€” Raw packet/file bytes, colors, level.
 // Use int8 for signed 1-byte values (-128 to +127).
 using BYTE = uint8_t;
-// 2-Byte Signed (-32,768 to +32,767) — Small stats, elemental resistances, grid coords.
+// 2-Byte Signed (-32,768 to +32,767) â€” Small stats, elemental resistances, grid coords.
 // Use uint16 for unsigned 2-byte values (0 to 65,535) like packet opcodes or Map IDs.
 using SHORT = int16_t;
 
-// 4-Byte Signed (-2.1B to +2.1B) — Default for HP, MP, damage, item counts, loops.
+// 4-Byte Signed (-2.1B to +2.1B) â€” Default for HP, MP, damage, item counts, loops.
 // Use DWORD for unsigned 4-byte values (0 to 4.2B) like bitflags.
 using INT = int32_t;
 // 4-Byte (0 to 4.2B). Example: DWORD bitFlags = 0xFF00;
 using DWORD = uint32_t;
-// 8-Byte Signed (up to 9.2 Quintillion) — Player Gold/SPI, Total EXP, database Account IDs.
+using UINT  = uint32_t;
+using UINT32 = uint32_t;
+// 8-Byte Signed (up to 9.2 Quintillion) â€” Player Gold/SPI, Total EXP, database Account IDs.
 // Use uint64 for unsigned 8-byte values (0 to 18.4 Quintillion) like file hashes.
 using INT64 = int64_t;
 
-// 4-Byte Decimal (~7 digits of precision) — World positions, movement speed, delta time.
+// 4-Byte Decimal (~7 digits of precision) â€” World positions, movement speed, delta time.
 // Use DOUBLE when you need high-precision timers that never lose accuracy over days.
 using FLOAT = float;
-// 8-Byte Decimal (~15-17 digits of precision) — High-precision server clock, long-running timers.
+// 8-Byte Decimal (~15-17 digits of precision) â€” High-precision server clock, long-running timers.
 // Use FLOAT for normal 3D math, positions, and rendering.
 using DOUBLE = double;
 
@@ -48,12 +50,12 @@ using UINT64 = uint64_t;
 
 // Standard 1-byte character. Example: Char inputKey = 'W'; // Keyboard key, delimiter
 using Char = char;
-// Wide 2-byte Unicode character. Example: WChar asianGlyph = L'仙'; // Asian fantasy character glyph
+// Wide 2-byte Unicode character. Example: WChar asianGlyph = L'ä»™'; // Asian fantasy character glyph
 using WChar = wchar_t;
 
 // Dynamic text string. Example: String playerName = "Li Wei"; // Character name, chat message
 using String = std::string;
-// Wide Unicode text string. Example: WString title = L"诛仙在线"; // Localized Asian fantasy text
+// Wide Unicode text string. Example: WString title = L"è¯›ä»™åœ¨çº¿"; // Localized Asian fantasy text
 using WString = std::wstring;
 // Fast read-only string view (zero memory allocation). Example: void SendChat(StringView msg); // Function parameter
 using StringView = std::string_view;

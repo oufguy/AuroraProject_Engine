@@ -137,6 +137,20 @@ public:
         }
         return removed;
     }
+
+    // 6. Check if a file or directory exists on disk
+    // Example: if (File::Find("Config/Client.ini")) { /* File is available! */ }
+    static inline BOOL Find(const FilePath &filePath) {
+        ScopedLock lock(g_FileMutex);
+        ErrorCode ec;
+        BOOL bExists = std::filesystem::exists(filePath, ec);
+        if (ec) {
+            String Msg = StringFormat("FileManager::Find error checking {}: {}", filePath.string(), ec.message());
+            LOG(Error, LogLevel::Core, "{}", Msg);
+            return false;
+        }
+        return bExists;
+    }
 };
 
 using File   = FileManager; // Short alias (File::Open, File::Write, File::Delete, etc.)

@@ -19,8 +19,8 @@ A lightweight, cross-platform C++23 application & client-server engine built fro
   * Slow *waiting* work (database queries) lives in its own server process. Assets are loaded up front / per-region behind a loading screen.
   * A job system can be added later *inside* the engine if ever needed, without changing game code.
 * **Zero-cost when unused.** E.g. `Input::Update()` returns immediately when no window is open, so headless servers never pay for keyboard/mouse polling.
-* **Cross-platform only.** No `<windows.h>` / DirectX in engine code. Everything goes through the C++23 standard library or SDL3.
-* **Naming convention.** Folder prefix + two aliases per class: `U_` Utilities, `M_` Managers (`Log` / `M_Log`), `I_` Input devices (`Keyboard` / `I_Keyboard`).
+* **Cross-platform only.** No `<windows.h>` / DirectX in engine code. Everything goes through the C++23 standard library, SDL3, and Vulkan 1.3 Core.
+* **Naming convention.** Folder prefix + two aliases per class: `U_` Utilities, `M_` Managers (`Log` / `M_Log`), `I_` Input devices (`Keyboard` / `I_Keyboard`), `R_` RHI (`Device` / `R_Device`), `C_` Classes (`Entity` / `C_Entity`).
 
 ---
 
@@ -39,6 +39,9 @@ AuroraProject/
 │   │   └── Runtime/
 │   │       ├── Core.h / Core.cpp    # Master include hub (<Core.h>) + lifecycle: Core::BeginPlay / Tick / Stop / EndPlay
 │   │       │
+│   │       ├── Classes/             # World object data structures (C_ prefix)
+│   │       │   └── C_Entity.h       # Lightweight POD Entity struct (Transform, Type, Color, Transparency)
+│   │       │
 │   │       ├── Utilities/           # Passive data types, colors & math formulas (U_ prefix)
 │   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
 │   │       │   ├── U_Colors.h       # Color presets & console log palette
@@ -50,17 +53,21 @@ AuroraProject/
 │   │       │   ├── M_Time.h         # TimeManager   (alias Time:: / M_Time::)     — High-precision DeltaTime, FPS, Uptime, Timestamps, Cooldowns
 │   │       │   ├── M_Crash.h        # CrashManager  (alias Crash:: / M_Crash::)   — Cross-platform hardware crash catcher & stacktrace reporter
 │   │       │   ├── M_Config.h       # ConfigManager (alias Config:: / M_Config::) — .ini / .cfg settings reader & writer with auto-defaults
-│   │       │   └── M_Input.h        # InputManager  (alias Input:: / M_Input::)   — SDL3 hardware event poller & remappable action keybinds
+│   │       │   ├── M_Input.h        # InputManager  (alias Input:: / M_Input::)   — SDL3 hardware event poller & remappable action keybinds
+│   │       │   └── M_Window.h       # WindowManager (alias Window:: / M_Window::) — SDL3 OS window (Windowed / Borderless / Fullscreen)
 │   │       │
 │   │       ├── Input/               # Hardware input device state (I_ prefix)
 │   │       │   ├── I_Keyboard.h     # Keyboard      (alias I_Keyboard::)          — Physical key state (Pressed, Held, Released)
 │   │       │   └── I_Mouse.h        # Mouse         (alias I_Mouse::)             — Mouse buttons, cursor pos, raw look delta, scroll wheel
 │   │       │
+│   │       ├── RHI/                 # Render Hardware Interface (Vulkan 1.3 Core backend)
+│   │       │   ├── R_Device.h       # RenderDevice  (alias Device:: / R_Device::) — Vulkan 1.3 instance, surface, physical & logical GPU
+│   │       │   └── R_Swapchain.h    # RenderSwapchain (alias Swapchain:: / R_Swapchain::) — Dynamic rendering, triple-buffering, VSync
+│   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
 │   │       ├── Network/             # Cross-platform TCP/UDP socket abstractions
-│   │       ├── Renderer/            # Scene manager, materials, mesh & UI rendering passes
-│   │       └── RHI/                 # Render Hardware Interface (Vulkan backend)
+│   │       └── Renderer/            # Scene manager, materials, mesh & UI rendering passes
 │   │
 │   ├── ThirdParty/                  # External header/static dependencies
 │   └── Tools/                       # Asset packaging & pipeline tools
@@ -153,6 +160,9 @@ Thread-safe file reader and writer (auto-creates parent directories):
 File::Write("Logs/Client.log", "Client started!\n", true);
 File::Write("Logs/Client.log", "Appended line!\n", false);
 
+// Check if a file is available on disk
+if (File::Find("Config/Client.ini")) { /* File exists! */ }
+
 // Read file into RAM and free it when done
 String data = File::Open("Config/Client.ini");
 File::Close(data);
@@ -197,11 +207,40 @@ while (Core::Tick()) {
 
 > **Note:** Mouse buttons use the `MB_` prefix (`MB_Left`, `MB_Middle`, `MB_Right`, `MB_Side1`, `MB_Side2`) so they never collide with `Key::Left` / `Key::Right`.
 >
-> Hardware polling only runs once a window is open (`Input::Set_WindowActive(true)`, called automatically by the upcoming Window Manager). In console apps and headless servers `Input::Update()` costs ~nothing.
+> Hardware polling only runs while a window is open (`Window::Is_Open()`). In console apps and headless servers `Input::Update()` costs ~nothing.
 
 ---
 
-### 6. Complete Application Loop Example (`Game/Client/Client.cpp`)
+### 6. Window Manager (`M_Window.h` — `Window::` / `M_Window::`)
+Opens a cross-platform OS window with SDL3 (Windows, Linux X11 & Wayland). Size and mode are read from `Config [Window]` with auto-defaults. Closing the window (**[X]** or **Alt+F4**) makes `Core::Tick()` return `false`, so the main loop exits normally:
+
+```cpp
+Window::Create("Aurora Client");   // Reads [Window] Width / Height / Mode (defaults: 1280 x 720, Windowed)
+
+while (Core::Tick()) {
+    if (Window::Is_Minimized()) { Time::Sleep(10); continue; }                 // Save CPU/GPU in the taskbar
+    if (Window::Was_Resized())  { Vector2D px = Window::Get_PixelSize(); }    // Recreate swapchain later
+
+    if (Keyboard::Get_Key(Key::F11, Input::Pressed))                           // Toggle fullscreen
+        Window::Set_Mode(Window::Is_Fullscreen() ? Window::Windowed : Window::Borderless);
+
+    Window::Set_MouseLocked(Mouse::Get_Button(MouseButton::MB_Right, Input::Held)); // MMO camera rotate
+}
+```
+
+| Function | What it does |
+| :--- | :--- |
+| `Create(title)` / `Destroy()` | Open / close the window (the OS also cleans up automatically on exit) |
+| `Set_Title`, `Set_Size`, `Set_Mode`, `Set_MouseLocked` | `Set_Size` / `Set_Mode` update `Config` in memory - call `Config::Save()` to keep them |
+| `Get_Size()` / `Get_PixelSize()` | Screen units (UI, mouse) vs real pixels (render resolution on 4K / scaled displays) |
+| `Is_Open`, `Is_Focused`, `Is_Minimized`, `Is_Fullscreen`, `Was_Resized` | Window state (`Was_Resized` is only `true` on the frame it happened) |
+| `Get_Handle()` | Raw `SDL_Window*` for Vulkan RHI surface creation |
+
+Window modes: `Window::Windowed`, `Window::Borderless` (desktop-resolution fullscreen, instant Alt+Tab — recommended), `Window::Fullscreen` (exclusive, changes monitor resolution).
+
+---
+
+### 7. Complete Application Loop Example (`Game/Client/Client.cpp`)
 Instead of initializing and updating every Manager one by one, **`Core::BeginPlay`**, **`Core::Tick`**, and **`Core::EndPlay`** in [`Core.h`](Engine/Source/Runtime/Core.h) run all Engine systems automatically:
 
 ```cpp
@@ -210,26 +249,30 @@ Instead of initializing and updating every Manager one by one, **`Core::BeginPla
 int main() {
     // 1. Starts CrashManager, loads Config/Client.ini, initializes SDL3 & starts the Time clock!
     Core::BeginPlay("Client");
+    Window::Create("Aurora Client");
+    R_Device::Init(Window::Get_Handle(), "Aurora Client");
+    R_Swapchain::Init();
 
-    INT width  = Config::Get("Window", "Width",  1920);
-    INT height = Config::Get("Window", "Height", 1080);
-    PRINT("Client Initialized ({}x{})! PI = {}", width, height, Math::PI);
-
-    // 2. Main Application Loop (Automatically updates Time::Update() & Input::Update()!)
+    // 2. Main Application Loop (Time::Update() + Input::Update() + window events every frame)
     DOUBLE lastLogTime = 0.0;
-    while (Core::Tick()) {
-        // Press Escape to exit cleanly
-        if (Keyboard::Get_Key(Key::Escape, Input::Pressed)) {
-            Core::Stop();
+    while (Core::Tick()) {   // Returns false on window [X] / Alt+F4
+        if (Window::Is_Minimized()) { Time::Sleep(10); continue; }
+
+        // F10 = toggle VSync ON/OFF, F11 = toggle Fullscreen
+        if (Keyboard::Get_Key(Key::F10, Input::Pressed)) R_Swapchain::Set_VSync(!R_Swapchain::Get_VSync());
+        if (Keyboard::Get_Key(Key::F11, Input::Pressed)) Window::Set_Mode(Window::Is_Fullscreen() ? Window::Windowed : Window::Fullscreen);
+
+        if (Time::Check_Cooldown(lastLogTime, 1.0)) {
+            Window::Set_Title(StringFormat("Aurora Client | FPS: {} | VSync: {}", Time::Get_FPS(), R_Swapchain::Get_VSync() ? "ON" : "OFF"));
         }
 
-        // Print DeltaTime & FPS once every 1.0 second
-        if (Time::Check_Cooldown(lastLogTime, 1.0)) {
-            LOG(Info, LogLevel::Developer, "DeltaTime: {}s | FPS: {}", Time::Get_DeltaTime(), Time::Get_FPS());
+        // Render Frame with modern Vulkan 1.3 Dynamic Rendering
+        if (R_Swapchain::BeginFrame()) {
+            R_Swapchain::EndFrame();
         }
     }
 
-    // 3. Automatically saves Config/Keybinds and shuts down SDL3 cleanly!
+    // 3. Shuts down Swapchain, Vulkan Device, Window, and saves Config
     Core::EndPlay();
     return 0;
 }
@@ -238,15 +281,14 @@ int main() {
 | Function | What it does |
 | :--- | :--- |
 | `Core::BeginPlay(appName)` | `Crash::Init("Logs/{app}Crash.log")`, `Config::Load("Config/{app}.ini")`, `SDL_Init`, `Time::Init()` |
-| `Core::Tick()` | `Time::Update()` + `Input::Update()`. Returns `false` when the window closes or `Core::Stop()` was called |
-| `Core::Stop()` | Exits the `while (Core::Tick())` loop cleanly at the end of the frame |
-| `Core::EndPlay()` | `Config::Save()` (incl. keybinds) + `SDL_Quit()` |
+| `Core::Tick()` | `Time::Update()` + `Input::Update()` (+ window events). Returns `false` when the window closes |
+| `Core::EndPlay()` | `R_Swapchain::Shutdown()`, `R_Device::Shutdown()`, `Window::Destroy()`, `Config::Save()`, `SDL_Quit()` |
 
 ---
 
 ## Performance Notes
 
-An empty `while (Core::Tick())` loop runs at **~12,000,000 iterations/sec (~83 ns) in `Debug`** with no window open. Most of that is the `Clock::now()` hardware timer read.
+An empty `while (Core::Tick())` loop runs at **~12,000,000 iterations/sec (~83 ns) in `Debug`** with no window open (~1,100,000 with a window, since SDL then asks the OS for window messages every frame). Most of the no-window cost is the `Clock::now()` hardware timer read.
 
 * Measure performance in **`Development`** or **`Release`** — `Debug` disables inlining and adds runtime checks.
 * Above ~1,000 FPS, compare **frame time (ms)**, not FPS. A jump from 12M to 10M FPS is only ~17 ns and is usually just noise (code alignment, CPU boost, core scheduling).

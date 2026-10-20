@@ -6,7 +6,7 @@
 #include <M_Config.h>
 #include <I_Keyboard.h>
 #include <I_Mouse.h>
-#include <SDL3/SDL.h>
+#include <M_Window.h>
 
 // ============================================================================
 // Cross-Platform Input & Keybind Manager (SDL3 Hardware Poller + Action Binds)
@@ -31,18 +31,12 @@ private:
     };
 
     static inline uMap<String, ActionBinding> s_Bindings;
-    static inline BOOL                        s_WindowActive = false;
 
 public:
     // Re-export InputState values so callers can write Input::Pressed, Input::Held, Input::Released!
     static constexpr InputState Pressed  = InputState::Pressed;
     static constexpr InputState Held     = InputState::Held;
     static constexpr InputState Released = InputState::Released;
-
-    // Enables or disables hardware window polling (automatically set to TRUE when a Window is created).
-    static inline void Set_WindowActive(BOOL active) {
-        s_WindowActive = active;
-    }
 
     // ========================================================================
     // Core Frame Polling (Reads OS/SDL3 Hardware Events into Keyboard & Mouse)
@@ -52,14 +46,20 @@ public:
     // Returns FALSE when the user closes the window (clicks [X] or Alt+F4).
     // Example: while (Input::Update()) { ... }
     static inline BOOL Update() {
-        // Fast-path: If no Window is open yet (Console / Headless Server), skip immediately in 1 CPU cycle!
-        if (!s_WindowActive) [[likely]] return true;
+        // Fast-path: If no Window is open (Console / Headless Server), skip immediately in 1 CPU cycle!
+        if (!Window::Is_Open()) [[likely]] return true;
 
         Keyboard::BeginFrame();
         Mouse::BeginFrame();
+        Window::BeginFrame();
 
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
+            // Forward all window events (resize, focus, minimize) to the Window Manager
+            if (ev.type >= SDL_EVENT_WINDOW_FIRST && ev.type <= SDL_EVENT_WINDOW_LAST) {
+                Window::OnEvent(ev);
+            }
+
             switch (ev.type) {
                 case SDL_EVENT_QUIT:
                 case SDL_EVENT_WINDOW_CLOSE_REQUESTED:

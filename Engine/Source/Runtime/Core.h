@@ -16,14 +16,26 @@
 #include <I_Mouse.h>
 
 // ============================================================================
-// Engine Managers (Log, File, Time, Crash, Config, Input)
+// Engine Managers (Log, File, Time, Crash, Config, Window, Input)
 // ============================================================================
 #include <M_Log.h>
 #include <M_File.h>
 #include <M_Time.h>
 #include <M_Crash.h>
 #include <M_Config.h>
+#include <M_Window.h>
 #include <M_Input.h>
+
+// ============================================================================
+// Render Hardware Interface (Vulkan 1.3 Core)
+// ============================================================================
+#include <R_Device.h>
+#include <R_Swapchain.h>
+
+// ============================================================================
+// Engine World Classes (Entity)
+// ============================================================================
+#include <C_Entity.h>
 
 // ============================================================================
 // Master Engine Lifecycle (Core::BeginPlay, Core::Tick, Core::EndPlay)
@@ -41,16 +53,16 @@ private:
 
 public:
     // 1. Starts all Engine Managers at once (Crash, Config, SDL3 Events, Time)!
-    // Pass your app name (e.g. "Client" or "FieldServer") to auto-name Config & Crash files!
-    // Example: Core::BeginPlay("Client");
-    static inline void BeginPlay(StringView appName = "Application") {
+    // Pass your app name (e.g. "Settings", "Client", or "FieldServer") to auto-name Config & Crash files!
+    // Example: Core::BeginPlay("Settings");
+    static inline void BeginPlay(StringView appName = "Settings") {
         s_IsRunning = true;
 
-        // Initialize Crash Manager -> "Logs/ClientCrash_DD.MM.YY_HH.MM.log"
-        Crash::Init(StringFormat("Logs/{}Crash.log", appName));
+        // Initialize Crash Manager -> "{appName}Crash.log"
+        Crash::Init(StringFormat("{}Crash.log", appName));
 
-        // Load Config -> "Config/Client.ini"
-        Config::Load(StringFormat("Config/{}.ini", appName));
+        // Load Config -> "{appName}.ini"
+        Config::Load(StringFormat("{}.ini", appName));
 
         // Initialize SDL3 event system
         SDL_Init(SDL_INIT_EVENTS);
@@ -58,7 +70,7 @@ public:
         // Prime the clock so the first frame has a clean DeltaTime
         Time::Init();
 
-        LOG(Info, LogLevel::Core, "Core::BeginPlay initialized [{}]", appName);
+        LOG(Info, LogLevel::Core, "Core::BeginPlay initialized");
     }
 
     // 2. Updates all per-frame Engine systems (Time + Input + Window events)!
@@ -83,9 +95,12 @@ public:
         s_IsRunning = false;
     }
 
-    // 4. Saves Config/Keybinds and shuts down Engine subsystems cleanly before main() exits.
+    // 4. Closes the Window, saves Config/Keybinds and shuts down Engine subsystems cleanly.
     // Example: Core::EndPlay();
     static inline void EndPlay() {
+        R_Swapchain::Shutdown();
+        R_Device::Shutdown();
+        Window::Destroy();
         Config::Save();
         SDL_Quit();
         LOG(Info, LogLevel::Core, "Core::EndPlay shut down cleanly.");

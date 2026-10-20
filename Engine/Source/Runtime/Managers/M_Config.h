@@ -20,6 +20,18 @@
 //   Config::Save(); // Auto-creates Config/Client.ini with defaults if missing!
 // ============================================================================
 class ConfigManager {
+public:
+    // Default version of Settings.ini written to disk if the requested config file doesn't exist yet
+    static inline String DefaultSettings =
+        "[Window]\n"
+        "Width = 1280\n"
+        "Height = 720\n"
+        "Mode = Windowed\n"
+        "VSync = true\n"
+        "\n"
+        "[Input]\n"
+        "Sensitivity = 1.0000\n";
+
 private:
     // Stores settings as: s_Data["Section"]["Key"] = "Value"
     // Uses sorted Map so saved .ini files are always neatly ordered!
@@ -27,7 +39,7 @@ private:
     using SectionMap  = Map<String, KeyValueMap>;
 
     static inline SectionMap s_Data;
-    static inline FilePath   s_CurrentFile = "Config/Settings.ini";
+    static inline FilePath   s_CurrentFile = "Settings.ini";
 
     // Trims spaces, tabs, and '\r' from the start and end of a line
     static inline String Trim(StringView text) {
@@ -43,17 +55,19 @@ public:
     // ========================================================================
 
     // Loads settings from an .ini/.cfg file into memory.
-    // If the file doesn't exist yet, it remembers the path so Save() will create it!
+    // If the file is not available on disk, it writes the DefaultSettings version, then loads it!
     // Example: Config::Load("Config/Client.ini");
     static inline BOOL Load(const FilePath &filePath) {
         s_CurrentFile = filePath;
         s_Data.clear();
 
-        if (!std::filesystem::exists(filePath)) {
-            LOG(Warn, LogLevel::Core, "ConfigManager::Load '{}' not found - will create with defaults on Save().", filePath.string());
-            return false;
+        // 1. Check if file is available; if not, create default version first!
+        if (!FileManager::Find(filePath)) {
+            LOG(Warn, LogLevel::Core, "ConfigManager::Load '{}' not found - creating default config file.", filePath.string());
+            FileManager::Write(filePath, DefaultSettings, true);
         }
 
+        // 2. Load and parse the config file
         String rawText = FileManager::Open(filePath);
         if (rawText.empty()) return false;
 

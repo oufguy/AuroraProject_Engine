@@ -12,6 +12,8 @@
 #include <cmath>          // std::sqrt, std::sin, std::cos, std::abs, std::pow (Math functions)
 #include <limits>         // std::numeric_limits (Infinity, min/max values)
 #include <random>         // std::mt19937, std::uniform_int_distribution, std::uniform_real_distribution
+#include <algorithm>      // std::min, std::max, std::clamp, std::sort (Common algorithms)
+#include <cstring>        // std::memcpy, std::memset, strcmp (Fast memory operations)
 
 // ============================================================================
 // Text & Formatting
@@ -21,7 +23,7 @@
 #include <format>         // std::format, std::formatter (C++20 text formatting with "{}")
 
 // ============================================================================
-// Containers (Lists, Tables & Sets)
+// Containers & Views
 // ============================================================================
 #include <vector>         // std::vector (Dynamic resizable array -> your Array<T>)
 #include <array>          // std::array (Fixed-size stack array -> your fArray<T, N>)
@@ -29,6 +31,8 @@
 #include <unordered_map>  // std::unordered_map (Fast hash table -> your uMap<K, V>)
 #include <set>            // std::set (Sorted unique list -> your Set<T>)
 #include <unordered_set>  // std::unordered_set (Fast unique hash list -> your uSet<T>)
+#include <span>           // std::span (Contiguous buffer view)
+#include <optional>       // std::optional (Nullable values without pointers)
 
 // ============================================================================
 // Memory & Smart Pointers
@@ -55,3 +59,14 @@
 #include <exception>       // std::set_terminate (Uncaught exception crash catching)
 #include <source_location> // std::source_location (Auto-captures file, line, and function on crash)
 #include <stacktrace>      // std::stacktrace (Auto-captures exact file, line & call stack on hardware crash!)
+
+// ============================================================================
+// Core Cross-Platform Hardware & Windowing (SDL3)
+// ============================================================================
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+
+// ============================================================================
+// Modern Graphics API (Vulkan 1.3 / 1.4 Core)
+// ============================================================================
+#include <vulkan/vulkan.h>

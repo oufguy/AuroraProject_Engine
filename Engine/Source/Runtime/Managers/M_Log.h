@@ -84,6 +84,7 @@ public:
                 std::cout << LOG_COLOR_PRINT << "[PRINT] " << message << '\n';
                 break;
         }
+        std::cout << std::flush;
     }
 };
 
