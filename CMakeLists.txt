@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(AuroraProject LANGUAGES CXX)
+project(AuroraProject LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Bake C++ runtime DLLs (vcruntime140 / msvcp140) directly into .exe as Static (/MT and /MTd)
 # So Debug, Development, and Release .exe files run on any PC or Linux Wine with zero missing DLLs!
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# ---------- ThirdParty: SDL3 (Static — Zero DLLs!) ----------
+include(FetchContent)
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON  CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    SDL3
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG        release-3.4.18
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(SDL3)
 
 # ---------- Engine ----------
 # Auto-grab C++ files in Engine/Source and every subfolder inside it
@@ -47,6 +60,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(EngineSource
   PUBLIC
     Threads::Threads
+    SDL3::SDL3-static
 )
 
 # Pass configuration macros (_DEBUG, _DEVELOPMENT, _RELEASE) to Engine, Client, and Server

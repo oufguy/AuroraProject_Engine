@@ -13,8 +13,8 @@ private:
     using Clock     = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock>;
 
-    static inline TimePoint s_StartTime     = Clock::now();
-    static inline TimePoint s_LastFrameTime = Clock::now();
+    static inline TimePoint s_StartTime{};
+    static inline TimePoint s_LastFrameTime{};
 
     static inline FLOAT  s_DeltaTime  = 0.0f;
     static inline DOUBLE s_TotalTime  = 0.0;
@@ -33,27 +33,31 @@ public:
     // Core Frame / Tick Loop
     // ========================================================================
 
+    // Resets the Engine start clock (called automatically by Core::BeginPlay).
+    static inline void Init() {
+        s_StartTime     = Clock::now();
+        s_LastFrameTime = s_StartTime;
+    }
+
     // Call this ONCE at the very top of your Client or Server while(running) loop!
     // Automatically updates DeltaTime, TotalTime, and calculates FPS every 1 second.
     // Example: Time::Update();
     static inline void Update() {
         TimePoint now = Clock::now();
 
-        // Calculate time passed since the previous frame in Seconds
-        std::chrono::duration<FLOAT> frameDiff = now - s_LastFrameTime;
+        // Single integer nanosecond subtraction -> multiply by 1e-9 (faster than 2 chrono conversions!)
+        DOUBLE rawDt = static_cast<DOUBLE>((now - s_LastFrameTime).count()) * 1e-9;
         s_LastFrameTime = now;
 
-        // Cap DeltaTime at 0.1s (10 FPS minimum) so dragging the window never teleports players through walls!
-        s_DeltaTime = Math::Clamp_Max(frameDiff.count(), 0.1f);
-
-        // Calculate total uptime since engine start (uses DOUBLE so it never loses accuracy over days!)
-        std::chrono::duration<DOUBLE> totalDiff = now - s_StartTime;
-        s_TotalTime = totalDiff.count();
+        // Accumulate total uptime in DOUBLE and cap DeltaTime at 0.1s (10 FPS minimum)
+        s_TotalTime += rawDt;
+        FLOAT dt     = static_cast<FLOAT>(rawDt);
+        s_DeltaTime  = (dt > 0.1f) ? 0.1f : dt;
 
         // Count frames and update FPS once every 1.0 second
         s_FrameCount++;
-        s_FPSTimer += frameDiff.count();
-        if (s_FPSTimer >= 1.0f) {
+        s_FPSTimer += dt;
+        if (s_FPSTimer >= 1.0f) [[unlikely]] {
             s_CurrentFPS = s_FrameCount;
             s_FrameCount = 0;
             s_FPSTimer  -= 1.0f;

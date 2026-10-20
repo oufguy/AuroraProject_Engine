@@ -9,16 +9,23 @@
 * ~~Time Manager (`M_Time` / `Time::`)~~ (`DeltaTime`, FPS, Timestamps, Cooldowns)
 * ~~Crash Manager (`M_Crash` / `Crash::`)~~ (Catch hardware crashes, stacktrace file/line, dated `Crash.log`)
 * ~~Config Manager (`M_Config` / `Config::` - Save/load Client & Server settings)~~
-* Input Module (`I_Input` - Keyboard + Mouse)
+* ~~Input System (`I_Keyboard`, `I_Mouse`, `M_Input` - SDL3 Keyboard, Mouse & Remappable Keybinds)~~
+* ~~Core Lifecycle (`Core::BeginPlay`, `Core::Tick`, `Core::Stop`, `Core::EndPlay`)~~
+* ~~Core Loop Performance Pass~~ (Dirty-flag input arrays, skip polling without a window, leaner `Time::Update` -> ~12M FPS empty loop in Debug)
+* ~~Threading Decision~~ (Single-threaded by design; servers scale by process. `M_Thread` job system only if ever truly needed)
 
 ## Later Stage (Engine & World)
-* Window Manager (`R_Window` - Create OS window)
+* Window Manager (`R_Window` - Create OS window via SDL3, auto-enables `Input::Set_WindowActive`) <- **NEXT**
 * Render Handler (`RHI` - Vulkan backend)
+* Asset Manager (`Asset::Get_Mesh("Name")` - Load all / per-region behind a loading screen, BC-compressed `.dds` textures)
 * Culling & Spatial Grid (Frustum/occlusion culling + distance grid to boost FPS)
 * Physics Module (Lightweight; separate Ground Box & Fly Hitbox like 2000s flying MMOs)
 * GUI Module (Inventory, HUD, Buttons)
 * Audio System (Sound etc.)
 
 ## End Stage (Multiplayer & Polish)
-* Network Module (Client/Server TCP packets)
-* Sharp Anti-Aliasing (Hardware MSAA + Anisotropic Filtering — crisp distance, no blurry TAA)
+* Network Module (Client/Server TCP packets, non-blocking sockets polled in `Core::Tick`)
+* Sharp Anti-Aliasing (Hardware MSAA + Anisotropic Filtering - crisp distance, no blurry TAA)
+
+## Optional (Only If Needed)
+* Job System (`M_Thread` - `Dispatch` / `ParallelFor`) for faster loading screens or huge entity counts

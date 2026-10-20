@@ -12,6 +12,18 @@ A lightweight, cross-platform C++23 application & client-server engine built fro
 
 ---
 
+## Design Principles
+
+* **Simple first.** The engine runs on a **single main thread** by design (like classic 2000s MMO clients & per-zone servers). No thread pool, no data races, easy debugging.
+  * Servers scale by running **more processes** (one per zone/role: `FieldServer`, `NPCServer`, ...), not more threads.
+  * Slow *waiting* work (database queries) lives in its own server process. Assets are loaded up front / per-region behind a loading screen.
+  * A job system can be added later *inside* the engine if ever needed, without changing game code.
+* **Zero-cost when unused.** E.g. `Input::Update()` returns immediately when no window is open, so headless servers never pay for keyboard/mouse polling.
+* **Cross-platform only.** No `<windows.h>` / DirectX in engine code. Everything goes through the C++23 standard library or SDL3.
+* **Naming convention.** Folder prefix + two aliases per class: `U_` Utilities, `M_` Managers (`Log` / `M_Log`), `I_` Input devices (`Keyboard` / `I_Keyboard`).
+
+---
+
 ## Directory Breakdown (`Engine/` + Example `Game/` Structure)
 
 ```text
@@ -25,7 +37,7 @@ AuroraProject/
 │   │   │   └── pch.h                # Precompiled standard C++23 headers
 │   │   │
 │   │   └── Runtime/
-│   │       ├── Core.h / Core.cpp    # Master engine include hub (<Core.h>)
+│   │       ├── Core.h / Core.cpp    # Master include hub (<Core.h>) + lifecycle: Core::BeginPlay / Tick / Stop / EndPlay
 │   │       │
 │   │       ├── Utilities/           # Passive data types, colors & math formulas (U_ prefix)
 │   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
@@ -37,11 +49,15 @@ AuroraProject/
 │   │       │   ├── M_File.h         # FileManager   (alias File:: / M_File::)     — Thread-safe file I/O (Open, Write, Close, Clean, Delete)
 │   │       │   ├── M_Time.h         # TimeManager   (alias Time:: / M_Time::)     — High-precision DeltaTime, FPS, Uptime, Timestamps, Cooldowns
 │   │       │   ├── M_Crash.h        # CrashManager  (alias Crash:: / M_Crash::)   — Cross-platform hardware crash catcher & stacktrace reporter
-│   │       │   └── M_Config.h       # ConfigManager (alias Config:: / M_Config::) — .ini / .cfg settings reader & writer with auto-defaults
+│   │       │   ├── M_Config.h       # ConfigManager (alias Config:: / M_Config::) — .ini / .cfg settings reader & writer with auto-defaults
+│   │       │   └── M_Input.h        # InputManager  (alias Input:: / M_Input::)   — SDL3 hardware event poller & remappable action keybinds
+│   │       │
+│   │       ├── Input/               # Hardware input device state (I_ prefix)
+│   │       │   ├── I_Keyboard.h     # Keyboard      (alias I_Keyboard::)          — Physical key state (Pressed, Held, Released)
+│   │       │   └── I_Mouse.h        # Mouse         (alias I_Mouse::)             — Mouse buttons, cursor pos, raw look delta, scroll wheel
 │   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
-│   │       ├── Input/               # Keyboard & Mouse input handling
 │   │       ├── Network/             # Cross-platform TCP/UDP socket abstractions
 │   │       ├── Renderer/            # Scene manager, materials, mesh & UI rendering passes
 │   │       └── RHI/                 # Render Hardware Interface (Vulkan backend)
@@ -156,27 +172,56 @@ LOG(Error, LogLevel::Core,      "Failed to load asset!");
 
 ---
 
-### 5. Complete Application Loop Example (`Game/Client/Client.cpp`)
+### 5. Input System (`I_Keyboard.h`, `I_Mouse.h`, `M_Input.h`)
+Powered by **SDL3** (statically linked with zero DLLs). Supports both direct device checks (`Keyboard::` / `Mouse::`) and remappable Action Keybinds (`Input::` / `M_Input::`) that automatically save to `Config/Client.ini` under `[Keybinds]`:
+
+```cpp
+// 1. Register remappable actions at startup (loads saved binds from Config or uses defaults):
+Input::Bind("MoveForward", Key::W);
+Input::Bind("Inventory",   Key::I);
+Input::Bind("FirePrimary", MouseButton::MB_Left);
+
+// 2. Input is polled automatically by Core::Tick() each frame:
+while (Core::Tick()) {
+    // Check remappable actions (Pressed once, Held down, or Released):
+    if (Input::Get_Action("MoveForward", Input::Held))    { /* Fly forward */ }
+    if (Input::Get_Action("Inventory",   Input::Pressed)) { /* Open Inventory once */ }
+    if (Input::Get_Action("FirePrimary", Input::Held))    { /* Fire weapon */ }
+
+    // Or query Mouse / Keyboard directly:
+    Vector2D lookDelta = Mouse::Get_Delta();    // Raw mouse movement this frame
+    FLOAT    zoomWheel = Mouse::Get_Scroll();   // Scroll wheel (+1 up, -1 down)
+    if (Mouse::Get_Button(MouseButton::MB_Right, Input::Held)) { /* Rotate camera */ }
+}
+```
+
+> **Note:** Mouse buttons use the `MB_` prefix (`MB_Left`, `MB_Middle`, `MB_Right`, `MB_Side1`, `MB_Side2`) so they never collide with `Key::Left` / `Key::Right`.
+>
+> Hardware polling only runs once a window is open (`Input::Set_WindowActive(true)`, called automatically by the upcoming Window Manager). In console apps and headless servers `Input::Update()` costs ~nothing.
+
+---
+
+### 6. Complete Application Loop Example (`Game/Client/Client.cpp`)
+Instead of initializing and updating every Manager one by one, **`Core::BeginPlay`**, **`Core::Tick`**, and **`Core::EndPlay`** in [`Core.h`](Engine/Source/Runtime/Core.h) run all Engine systems automatically:
 
 ```cpp
 #include <Core.h>
 
 int main() {
-    // 1. Initialize Crash Handler
-    Crash::Init("Logs/ClientCrash.log");
+    // 1. Starts CrashManager, loads Config/Client.ini, initializes SDL3 & starts the Time clock!
+    Core::BeginPlay("Client");
 
-    // 2. Load Config (auto-creates Config/Client.ini on Save if missing)
-    Config::Load("Config/Client.ini");
     INT width  = Config::Get("Window", "Width",  1920);
     INT height = Config::Get("Window", "Height", 1080);
-    Config::Save();
-
     PRINT("Client Initialized ({}x{})! PI = {}", width, height, Math::PI);
 
-    // 3. Main Application Loop
+    // 2. Main Application Loop (Automatically updates Time::Update() & Input::Update()!)
     DOUBLE lastLogTime = 0.0;
-    while (true) {
-        Time::Update();
+    while (Core::Tick()) {
+        // Press Escape to exit cleanly
+        if (Keyboard::Get_Key(Key::Escape, Input::Pressed)) {
+            Core::Stop();
+        }
 
         // Print DeltaTime & FPS once every 1.0 second
         if (Time::Check_Cooldown(lastLogTime, 1.0)) {
@@ -184,6 +229,25 @@ int main() {
         }
     }
 
+    // 3. Automatically saves Config/Keybinds and shuts down SDL3 cleanly!
+    Core::EndPlay();
     return 0;
 }
 ```
+
+| Function | What it does |
+| :--- | :--- |
+| `Core::BeginPlay(appName)` | `Crash::Init("Logs/{app}Crash.log")`, `Config::Load("Config/{app}.ini")`, `SDL_Init`, `Time::Init()` |
+| `Core::Tick()` | `Time::Update()` + `Input::Update()`. Returns `false` when the window closes or `Core::Stop()` was called |
+| `Core::Stop()` | Exits the `while (Core::Tick())` loop cleanly at the end of the frame |
+| `Core::EndPlay()` | `Config::Save()` (incl. keybinds) + `SDL_Quit()` |
+
+---
+
+## Performance Notes
+
+An empty `while (Core::Tick())` loop runs at **~12,000,000 iterations/sec (~83 ns) in `Debug`** with no window open. Most of that is the `Clock::now()` hardware timer read.
+
+* Measure performance in **`Development`** or **`Release`** — `Debug` disables inlining and adds runtime checks.
+* Above ~1,000 FPS, compare **frame time (ms)**, not FPS. A jump from 12M to 10M FPS is only ~17 ns and is usually just noise (code alignment, CPU boost, core scheduling).
+* Input arrays (`Keyboard` / `Mouse`) are only copied on frames where a button actually changed (`s_IsDirty` flag).

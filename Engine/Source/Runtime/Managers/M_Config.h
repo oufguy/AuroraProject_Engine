@@ -50,7 +50,7 @@ public:
         s_Data.clear();
 
         if (!std::filesystem::exists(filePath)) {
-            LOG(Warn, LogLevel::Core, "ConfigManager::Load '{}' not found — will create with defaults on Save().", filePath.string());
+            LOG(Warn, LogLevel::Core, "ConfigManager::Load '{}' not found - will create with defaults on Save().", filePath.string());
             return false;
         }
 
