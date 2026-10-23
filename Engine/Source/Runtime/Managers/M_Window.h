@@ -165,20 +165,22 @@ public:
         if (s_IsOpen) SDL_SetWindowTitle(s_Window, String(title).c_str());
     }
 
-    // Resizes the window and updates Config [Window] in memory (call Config::Save() to keep it!).
+    // Resizes the window and immediately saves to Config [Window].
     // Example: Window::Set_Size(1920, 1080);
     static inline void Set_Size(INT width, INT height) {
         Config::Set("Window", "Width",  width);
         Config::Set("Window", "Height", height);
+        Config::Save();
         if (s_IsOpen) ApplyMode(s_Mode, width, height);
     }
 
-    // Switches Windowed / Borderless / Fullscreen and updates Config [Window] in memory.
+    // Switches Windowed / Borderless / Fullscreen and immediately saves to Config [Window].
     // Example: Window::Set_Mode(Window::Borderless);
     static inline void Set_Mode(WindowMode mode) {
         if (!s_IsOpen) return;
         ApplyMode(mode, Config::Get("Window", "Width", 1280), Config::Get("Window", "Height", 720));
         Config::Set("Window", "Mode", ModeToString(s_Mode));
+        Config::Save();
         s_WasResized = true;
     }
 

@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Core.h>
+#include <pch.h>
+#include <U_Variables.h>
+#include <U_Math.h>
 
 // ============================================================================
 // Entity Categories (Identifies what kind of object it is)
@@ -18,28 +20,34 @@ enum class EntityType : BYTE {
 };
 
 // ============================================================================
-// Lightweight C-Style Entity Struct (Pure Data)
+// Base Entity (Lightweight C-Style POD Struct, Zero Virtual Overhead)
 // ============================================================================
-struct Entity {
+struct BaseEntity {
     // Unique ID in the Workspace / World
-    INT ID = 0;
+    INT        ID        = 0;
 
     // What kind of Entity this is
-    EntityType Type = EntityType::None;
+    EntityType Type      = EntityType::None;
 
     // If FALSE, simulation and rendering skip it immediately
-    BOOL bIsActive = true;
+    BOOL       bIsActive = true;
 
     // Visibility: 1.0 = Fully Visible, 0.0 = Fully Invisible
-    FLOAT Transparency = 1.0f;
+    FLOAT      Transparency = 1.0f;
 
     // RGBA Tint multiplier
-    Vector4D Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-    // Texture ID to pass onto Render
-    INT TextureID = 0;
+    Vector4D   Color    = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
 
-    // World Transform
-    Vector3D Position = Vector3D(0.0f, 0.0f, 0.0f);
-    Vector3D Rotation = Vector3D(0.0f, 0.0f, 0.0f);
-    Vector3D Size     = Vector3D(1.0f, 1.0f, 1.0f);
+    // World Transform (X, Y, Z)
+    Vector3D   Position = Vector3D(0.0f, 0.0f, 0.0f);
+    Vector3D   Rotation = Vector3D(0.0f, 0.0f, 0.0f);
+    Vector3D   Size     = Vector3D(1.0f, 1.0f, 1.0f);
+
+    // Final Transparency = Texture Alpha * Transparency of Entity
+    [[nodiscard]] constexpr FLOAT Get_FinalTransparency(FLOAT textureAlpha = 1.0f) const {
+        return textureAlpha * Transparency;
+    }
 };
+
+using Entity   = BaseEntity; // Clean standard alias
+using B_Entity = BaseEntity; // Folder-prefix alias

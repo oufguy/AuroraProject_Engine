@@ -48,9 +48,13 @@
 // ============================================================================
 // Time, Threading & Synchronization
 // ============================================================================
-#include <chrono>          // std::chrono::steady_clock, duration (High-precision DeltaTime & timers)
-#include <thread>          // std::this_thread::sleep_for (Server tick rate / FPS limiter sleep)
-#include <mutex>           // std::mutex, std::lock_guard (Thread safety locks)
+#include <chrono>             // std::chrono::steady_clock, duration (High-precision DeltaTime & timers)
+#include <thread>             // std::this_thread::sleep_for, std::jthread, std::thread
+#include <mutex>              // std::mutex, std::unique_lock, std::lock_guard
+#include <condition_variable> // std::condition_variable (Worker thread wakeup/sleep)
+#include <atomic>             // std::atomic, std::atomic_bool (Lockless flags)
+#include <queue>              // std::queue (Task FIFO queue)
+#include <functional>         // std::function (Task callbacks & lambdas)
 
 // ============================================================================
 // Diagnostics & Crash Handling

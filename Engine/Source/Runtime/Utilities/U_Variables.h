@@ -194,3 +194,11 @@ template<typename T, typename... Args>
 inline UniquePtr<T> MakeUnique(Args&&... args) {
     return std::make_unique<T>(std::forward<Args>(args)...);
 }
+
+
+// Callable function wrapper (std::function). Example: Function<void()> onClick;
+template<typename T>
+using Function = std::function<T>;
+
+// Generic task callback. Example: Task myTask = []() { ... };
+using Task = std::function<void()>;

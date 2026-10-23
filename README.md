@@ -14,13 +14,12 @@ A lightweight, cross-platform C++23 application & client-server engine built fro
 
 ## Design Principles
 
-* **Simple first.** The engine runs on a **single main thread** by design (like classic 2000s MMO clients & per-zone servers). No thread pool, no data races, easy debugging.
-  * Servers scale by running **more processes** (one per zone/role: `FieldServer`, `NPCServer`, ...), not more threads.
+* **Simple first.** Core gameplay logic runs predictably on the **main thread** (like classic MMO architectures). Heavy background work (asset decoding, texture loading, or updating thousands of missiles/projectiles) is delegated to **`M_Threads`** via simple manual tasks (`Threads::Run`) or multi-core batch loops (`Threads::Parallel_For`) without stalling the main loop.
+  * Servers scale by running **more processes** (one per zone), not complex entangled threads.
   * Slow *waiting* work (database queries) lives in its own server process. Assets are loaded up front / per-region behind a loading screen.
-  * A job system can be added later *inside* the engine if ever needed, without changing game code.
-* **Zero-cost when unused.** E.g. `Input::Update()` returns immediately when no window is open, so headless servers never pay for keyboard/mouse polling.
-* **Cross-platform only.** No `<windows.h>` / DirectX in engine code. Everything goes through the C++23 standard library, SDL3, and Vulkan 1.3 Core.
-* **Naming convention.** Folder prefix + two aliases per class: `U_` Utilities, `M_` Managers (`Log` / `M_Log`), `I_` Input devices (`Keyboard` / `I_Keyboard`), `R_` RHI (`Device` / `R_Device`), `C_` Classes (`Entity` / `C_Entity`).
+* **Zero-cost when unused.** E.g. `Input::Update()` returns immediately when no window is open, so headless servers never pay for keyboard/mouse polling. Headless servers completely skip RHI graphics backend initialization.
+* **Cross-platform only.** Zero Windows OS headers (`<windows.h>` strictly banned). Graphics backends support both modern Vulkan 1.3/1.4 Core and pure dynamic DirectX 11 loaded via SDL3 dynamic symbol loading without link-time OS dependencies.
+* **Naming convention.** Folder prefix + two aliases per class: `U_` Utilities, `M_` Managers (`Log` / `M_Log`), `I_` Input devices (`Keyboard` / `I_Keyboard`), `R_` RHI (`Device` / `R_Device`), `B_` BaseClasses (`Entity` / `B_Entity`).
 
 ---
 
@@ -37,10 +36,10 @@ AuroraProject/
 │   │   │   └── pch.h                # Precompiled standard C++23 headers
 │   │   │
 │   │   └── Runtime/
-│   │       ├── Core.h / Core.cpp    # Master include hub (<Core.h>) + lifecycle: Core::BeginPlay / Tick / Stop / EndPlay
+│   │       ├── Core.h / Core.cpp    # Master include hub (<Core.h>) + lifecycle: Core::Start_Process / Tick / End_Process
 │   │       │
-│   │       ├── Classes/             # World object data structures (C_ prefix)
-│   │       │   └── C_Entity.h       # Lightweight POD Entity struct (Transform, Type, Color, Transparency)
+│   │       ├── BaseClasses/         # Base world object data structures (B_ prefix)
+│   │       │   └── B_Entity.h       # Lightweight C-style POD Entity struct (Type, Transform, Color, Transparency)
 │   │       │
 │   │       ├── Utilities/           # Passive data types, colors & math formulas (U_ prefix)
 │   │       │   ├── U_Variables.h    # Explicit types (INT, FLOAT, BYTE, DWORD, String, Vector2D/3D/4D, COLOR, Array)
@@ -48,11 +47,14 @@ AuroraProject/
 │   │       │   └── U_Math.h         # Base Math:: & 2D/3D Math::Extended:: (Angles, Vectors, Distance, Lerp, Random)
 │   │       │
 │   │       ├── Managers/            # Active engine systems & handlers (M_ prefix)
+│   │       │   ├── Configs/
+│   │       │   │   └── D_ConfigDefaults.h # Default fallback Settings.ini layout and options
 │   │       │   ├── M_Log.h          # LogManager    (alias Log:: / M_Log::)       — Thread-safe logger with strict LogLevel & PRINT()
 │   │       │   ├── M_File.h         # FileManager   (alias File:: / M_File::)     — Thread-safe file I/O (Open, Write, Close, Clean, Delete)
 │   │       │   ├── M_Time.h         # TimeManager   (alias Time:: / M_Time::)     — High-precision DeltaTime, FPS, Uptime, Timestamps, Cooldowns
 │   │       │   ├── M_Crash.h        # CrashManager  (alias Crash:: / M_Crash::)   — Cross-platform hardware crash catcher & stacktrace reporter
 │   │       │   ├── M_Config.h       # ConfigManager (alias Config:: / M_Config::) — .ini / .cfg settings reader & writer with auto-defaults
+│   │       │   ├── M_Threads.h      # ThreadManager (alias Threads:: / M_Threads::) — Multi-core worker pool (Run, Parallel_For)
 │   │       │   ├── M_Input.h        # InputManager  (alias Input:: / M_Input::)   — SDL3 hardware event poller & remappable action keybinds
 │   │       │   └── M_Window.h       # WindowManager (alias Window:: / M_Window::) — SDL3 OS window (Windowed / Borderless / Fullscreen)
 │   │       │
@@ -60,14 +62,15 @@ AuroraProject/
 │   │       │   ├── I_Keyboard.h     # Keyboard      (alias I_Keyboard::)          — Physical key state (Pressed, Held, Released)
 │   │       │   └── I_Mouse.h        # Mouse         (alias I_Mouse::)             — Mouse buttons, cursor pos, raw look delta, scroll wheel
 │   │       │
-│   │       ├── RHI/                 # Render Hardware Interface (Vulkan 1.3 Core backend)
-│   │       │   ├── R_Device.h       # RenderDevice  (alias Device:: / R_Device::) — Vulkan 1.3 instance, surface, physical & logical GPU
-│   │       │   └── R_Swapchain.h    # RenderSwapchain (alias Swapchain:: / R_Swapchain::) — Dynamic rendering, triple-buffering, VSync
+│   │       ├── RHI/                 # Render Hardware Interface (All graphics headers in 1 click)
+│   │       │   ├── RHI_Manager.h    # RHIManager    (alias RHI:: / RHI_Manager::) — Master dynamic graphics dispatcher (Swap_API)
+│   │       │   ├── R_Vulkan.h       # VulkanRenderer  (alias R_Vulkan::)          — Vulkan 1.3/1.4 Dynamic Rendering & Sync 2
+│   │       │   ├── R_DirectX.h      # DirectXRenderer (alias R_DirectX::)         — DirectX 11 / DXGI pure dynamic runtime loader
+│   │       │   └── R_DirectX.cpp    # DirectX 11 backend implementation (zero Windows OS headers / static libs)
 │   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
-│   │       ├── Network/             # Cross-platform TCP/UDP socket abstractions
-│   │       └── Renderer/            # Scene manager, materials, mesh & UI rendering passes
+│   │       └── Network/             # Cross-platform TCP/UDP socket abstractions
 │   │
 │   ├── ThirdParty/                  # External header/static dependencies
 │   └── Tools/                       # Asset packaging & pipeline tools
@@ -105,39 +108,59 @@ AuroraProject/
 ## Module Quick Reference & Examples
 
 ### 1. Config Manager (`M_Config.h` — `Config::` / `M_Config::`)
-Loads and saves `.ini` / `.cfg` files. If a file or key does not exist yet, `Config::Get` automatically populates it with your default value so `Config::Save()` creates a complete `.ini` file automatically:
+Loads and saves clean `.ini` / `.cfg` files with human-readable formatting and option hints. If `Settings.ini` does not exist (or was deleted by a user), it auto-populates directly from `D_ConfigDefaults.h` (`ConfigDefaults::Settings`):
 
 ```cpp
-Config::Load("Config/Client.ini");
+Config::Load("Settings.ini");
 
-INT    width      = Config::Get("Window",  "Width",       1920);
-INT    height     = Config::Get("Window",  "Height",      1080);
-BOOL   fullscreen = Config::Get("Window",  "Fullscreen",  false);
-FLOAT  mouseSens  = Config::Get("Input",   "Sensitivity", 1.5f);
-String serverIP   = Config::Get("Network", "ServerIP",    "127.0.0.1");
+// Section, Key, FallbackValue (if key is missing, uses default with zero crashes!)
+String apiMode    = Config::Get("Graphics", "API",         "Vulkan");
+BOOL   vsync      = Config::Get("Graphics", "VSync",       false);
+String windowMode = Config::Get("Window",   "Mode",        "Windowed");
+INT    width      = Config::Get("Window",   "Width",       1280);
+INT    height     = Config::Get("Window",   "Height",      720);
+FLOAT  mouseSens  = Config::Get("Input",    "Sensitivity", 1.0f);
 
-// Update a setting at runtime and save to disk:
-Config::Set("Window", "Fullscreen", true);
+// Update a setting in memory and save to disk:
+Config::Set("Graphics", "VSync", true);
 Config::Save();
 ```
 
-Generates `Config/Client.ini`:
+Produces clean, Notepad-friendly `Settings.ini` with inline option comments:
 ```ini
-[Input]
-Sensitivity = 1.5000
-
-[Network]
-ServerIP = 127.0.0.1
+[Graphics]
+API = Vulkan                 ; Options: Vulkan / DirectX11
+VSync = false                ; Options: true / false
 
 [Window]
-Fullscreen = true
-Height = 1080
-Width = 1920
+Mode = Windowed              ; Options: Windowed / Borderless / Fullscreen
+Width = 1280
+Height = 720
+
+[Input]
+Sensitivity = 1.0000
 ```
 
 ---
 
-### 2. Crash Manager (`M_Crash.h` — `Crash::` / `M_Crash::`)
+### 2. Thread Manager (`M_Threads.h` — `Threads::` / `M_Threads::`)
+Cross-platform worker thread pool powered by C++23 standard threads. Allows manual offloading of heavy background work (texture streaming, file writes) or multi-core parallel for-loops (e.g. updating 2,500 missiles or entity physics batches) without stalling the main loop:
+
+```cpp
+// 1. Fire-and-forget background task:
+Threads::Run([]() {
+    // Heavy background decoding or texture decompression
+});
+
+// 2. High-performance multi-threaded Parallel_For (splits range across CPU cores):
+Threads::Parallel_For(0, 2500, [](size_t i) {
+    // Update projectile / missile[i] physics in parallel
+});
+```
+
+---
+
+### 3. Crash Manager (`M_Crash.h` — `Crash::` / `M_Crash::`)
 Catches hardware crashes (Null Pointer, Divide-by-Zero, Abort), unhandled exceptions, and manual safety checks, writing a dated crash log (`ClientCrash_DD.MM.YY_HH.MM.log`) with the exact file name, line number, and function:
 
 ```cpp
@@ -152,7 +175,7 @@ Crash::Trigger("Vulkan GPU Device Lost!");
 
 ---
 
-### 3. File Manager (`M_File.h` — `File::` / `M_File::`)
+### 4. File Manager (`M_File.h` — `File::` / `M_File::`)
 Thread-safe file reader and writer (auto-creates parent directories):
 
 ```cpp
@@ -170,7 +193,7 @@ File::Close(data);
 
 ---
 
-### 4. Log Manager (`M_Log.h` — `LOG(...)` & `PRINT(...)`)
+### 5. Log Manager (`M_Log.h` — `LOG(...)` & `PRINT(...)`)
 Thread-safe console logger with strict `LogLevel` filtering (`Core`, `Developer`, `User`):
 
 ```cpp
@@ -182,7 +205,7 @@ LOG(Error, LogLevel::Core,      "Failed to load asset!");
 
 ---
 
-### 5. Input System (`I_Keyboard.h`, `I_Mouse.h`, `M_Input.h`)
+### 6. Input System (`I_Keyboard.h`, `I_Mouse.h`, `M_Input.h`)
 Powered by **SDL3** (statically linked with zero DLLs). Supports both direct device checks (`Keyboard::` / `Mouse::`) and remappable Action Keybinds (`Input::` / `M_Input::`) that automatically save to `Config/Client.ini` under `[Keybinds]`:
 
 ```cpp
@@ -211,7 +234,7 @@ while (Core::Tick()) {
 
 ---
 
-### 6. Window Manager (`M_Window.h` — `Window::` / `M_Window::`)
+### 7. Window Manager (`M_Window.h` — `Window::` / `M_Window::`)
 Opens a cross-platform OS window with SDL3 (Windows, Linux X11 & Wayland). Size and mode are read from `Config [Window]` with auto-defaults. Closing the window (**[X]** or **Alt+F4**) makes `Core::Tick()` return `false`, so the main loop exits normally:
 
 ```cpp
@@ -240,49 +263,56 @@ Window modes: `Window::Windowed`, `Window::Borderless` (desktop-resolution fulls
 
 ---
 
-### 7. Complete Application Loop Example (`Game/Client/Client.cpp`)
-Instead of initializing and updating every Manager one by one, **`Core::BeginPlay`**, **`Core::Tick`**, and **`Core::EndPlay`** in [`Core.h`](Engine/Source/Runtime/Core.h) run all Engine systems automatically:
+### 8. Complete Application Loop Example (`Game/Client/Client.cpp`)
+Instead of initializing and updating every Manager one by one, **`Core::Start_Process`**, **`Core::Tick`**, and **`Core::End_Process`** in [`Core.h`](Engine/Source/Runtime/Core.h) run all Engine systems automatically:
 
 ```cpp
 #include <Core.h>
 
 int main() {
-    // 1. Starts CrashManager, loads Config/Client.ini, initializes SDL3 & starts the Time clock!
-    Core::BeginPlay("Client");
-    Window::Create("Aurora Client");
-    R_Device::Init(Window::Get_Handle(), "Aurora Client");
-    R_Swapchain::Init();
+    // 1. Starts Crash, Config, SDL3, Time, Threads, Window & RHI (Vulkan default) in 1 line!
+    Core::Start_Process("Client", ProcessType::Window, "Aurora Client");
 
-    // 2. Main Application Loop (Time::Update() + Input::Update() + window events every frame)
+    // 2. Main Application Loop (Time + Input + Window events polled automatically)
     DOUBLE lastLogTime = 0.0;
     while (Core::Tick()) {   // Returns false on window [X] / Alt+F4
         if (Window::Is_Minimized()) { Time::Sleep(10); continue; }
 
         // F10 = toggle VSync ON/OFF, F11 = toggle Fullscreen
-        if (Keyboard::Get_Key(Key::F10, Input::Pressed)) R_Swapchain::Set_VSync(!R_Swapchain::Get_VSync());
+        if (Keyboard::Get_Key(Key::F10, Input::Pressed)) RHI_Manager::Set_VSync(!RHI_Manager::Get_VSync());
         if (Keyboard::Get_Key(Key::F11, Input::Pressed)) Window::Set_Mode(Window::Is_Fullscreen() ? Window::Windowed : Window::Fullscreen);
 
-        if (Time::Check_Cooldown(lastLogTime, 1.0)) {
-            Window::Set_Title(StringFormat("Aurora Client | FPS: {} | VSync: {}", Time::Get_FPS(), R_Swapchain::Get_VSync() ? "ON" : "OFF"));
+        // F8 = Hot-swap graphics backend at runtime (PoE 2 style, no game restart needed!)
+        if (Keyboard::Get_Key(Key::F8, Input::Pressed)) {
+            RHI_Manager::Swap_API(RHI_Manager::Get_ActiveAPI() == API_Type::Vulkan ? API_Type::DirectX11 : API_Type::Vulkan);
         }
 
-        // Render Frame with modern Vulkan 1.3 Dynamic Rendering
-        if (R_Swapchain::BeginFrame()) {
-            R_Swapchain::EndFrame();
+        if (Time::Check_Cooldown(lastLogTime, 1.0)) {
+            Window::Set_Title(StringFormat("Aurora Client | FPS: {} | VSync: {} | Backend: {}",
+                Time::Get_FPS(),
+                RHI_Manager::Get_VSync() ? "ON" : "OFF",
+                RHI_Manager::Get_APIName(RHI_Manager::Get_ActiveAPI())));
+        }
+
+        // Render Frame with active backend (Vulkan / DirectX)
+        if (RHI_Manager::Begin_Frame()) {
+            RHI_Manager::End_Frame();
         }
     }
 
-    // 3. Shuts down Swapchain, Vulkan Device, Window, and saves Config
-    Core::EndPlay();
+    // 3. Shuts down RHI, Window, Threads, saves Config and quits SDL cleanly
+    Core::End_Process();
     return 0;
 }
 ```
 
 | Function | What it does |
 | :--- | :--- |
-| `Core::BeginPlay(appName)` | `Crash::Init("Logs/{app}Crash.log")`, `Config::Load("Config/{app}.ini")`, `SDL_Init`, `Time::Init()` |
-| `Core::Tick()` | `Time::Update()` + `Input::Update()` (+ window events). Returns `false` when the window closes |
-| `Core::EndPlay()` | `R_Swapchain::Shutdown()`, `R_Device::Shutdown()`, `Window::Destroy()`, `Config::Save()`, `SDL_Quit()` |
+| `Core::Start_Process(app, type)` | Initializes Crash, Config, Time, SDL3, Threads pool. If `ProcessType::Window`, creates Window & boots RHI |
+| `Core::Tick()` | `Time::Update()` + `Input::Update()` (+ window events). Returns `false` when window closes |
+| `Core::End_Process()` | `RHI_Manager::Shutdown()`, `Window::Destroy()`, `Threads::Shutdown()`, `Config::Save()`, `SDL_Quit()` |
+| `RHI_Manager::Swap_API(newAPI)` | Hot-swaps graphics backends (`Vulkan` $\leftrightarrow$ `DirectX11`) on the live window |
+| `Threads::Run(task)` / `Parallel_For` | Multi-core thread pool for background offloading & parallel loops |
 
 ---
 

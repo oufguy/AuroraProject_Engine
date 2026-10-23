@@ -5,6 +5,8 @@
 #include <M_Log.h>
 #include <M_File.h>
 
+#include <D_ConfigDefaults.h>
+
 // ============================================================================
 // Cross-Platform Config Manager (.ini / .cfg Reader & Writer)
 // ============================================================================
@@ -20,18 +22,6 @@
 //   Config::Save(); // Auto-creates Config/Client.ini with defaults if missing!
 // ============================================================================
 class ConfigManager {
-public:
-    // Default version of Settings.ini written to disk if the requested config file doesn't exist yet
-    static inline String DefaultSettings =
-        "[Window]\n"
-        "Width = 1280\n"
-        "Height = 720\n"
-        "Mode = Windowed\n"
-        "VSync = true\n"
-        "\n"
-        "[Input]\n"
-        "Sensitivity = 1.0000\n";
-
 private:
     // Stores settings as: s_Data["Section"]["Key"] = "Value"
     // Uses sorted Map so saved .ini files are always neatly ordered!
@@ -49,13 +39,33 @@ private:
         return String(text.substr(start, end - start + 1));
     }
 
+    // Formats a setting line with optional inline comment hint
+    static inline String FormatLineWithHint(StringView section, StringView key, StringView val) {
+        String line = StringFormat("{} = {}", key, val);
+        if (section == "Graphics") {
+            if (key == "API") {
+                while (line.size() < 28) line += ' ';
+                line += "; Options: Vulkan / DirectX11";
+            } else if (key == "VSync") {
+                while (line.size() < 28) line += ' ';
+                line += "; Options: true / false";
+            }
+        } else if (section == "Window") {
+            if (key == "Mode") {
+                while (line.size() < 28) line += ' ';
+                line += "; Options: Windowed / Borderless / Fullscreen";
+            }
+        }
+        return line;
+    }
+
 public:
     // ========================================================================
     // Load & Save (.ini / .cfg files)
     // ========================================================================
 
     // Loads settings from an .ini/.cfg file into memory.
-    // If the file is not available on disk, it writes the DefaultSettings version, then loads it!
+    // If the file is not available on disk, it writes the ConfigDefaults::Settings version, then loads it!
     // Example: Config::Load("Config/Client.ini");
     static inline BOOL Load(const FilePath &filePath) {
         s_CurrentFile = filePath;
@@ -64,7 +74,7 @@ public:
         // 1. Check if file is available; if not, create default version first!
         if (!FileManager::Find(filePath)) {
             LOG(Warn, LogLevel::Core, "ConfigManager::Load '{}' not found - creating default config file.", filePath.string());
-            FileManager::Write(filePath, DefaultSettings, true);
+            FileManager::Write(filePath, ConfigDefaults::Settings, true);
         }
 
         // 2. Load and parse the config file
@@ -81,7 +91,7 @@ public:
             String line = Trim(StringView(rawText).substr(pos, nextLine - pos));
             pos = nextLine + 1;
 
-            // Skip empty lines and comments (# or ;)
+            // Skip empty lines and full comment lines (# or ;)
             if (line.empty() || line[0] == '#' || line[0] == ';') continue;
 
             // Check for [Section] header
@@ -89,6 +99,13 @@ public:
                 currentSection = Trim(StringView(line).substr(1, line.size() - 2));
                 continue;
             }
+
+            // Strip inline comments (# or ;)
+            size_t commentPos = line.find_first_of(";#");
+            if (commentPos != String::npos) {
+                line = Trim(StringView(line).substr(0, commentPos));
+            }
+            if (line.empty()) continue;
 
             // Parse Key = Value
             size_t eqPos = line.find('=');
@@ -113,13 +130,55 @@ public:
             s_CurrentFile = filePath;
         }
 
+        // Preferred section order: [Graphics] -> [Window] -> [Input]
+        const Array<String> orderedSections = { "Graphics", "Window", "Input" };
+        std::set<String> processedSections;
         String output;
-        for (const auto &[sectionName, keys] : s_Data) {
-            output += StringFormat("[{}]\n", sectionName);
-            for (const auto &[key, val] : keys) {
-                output += StringFormat("{} = {}\n", key, val);
+
+        auto writeSection = [&](const String &secName) {
+            auto it = s_Data.find(secName);
+            if (it == s_Data.end()) return;
+
+            output += StringFormat("[{}]\n", secName);
+            const auto &keys = it->second;
+            std::set<String> processedKeys;
+
+            // Preferred key ordering per section
+            Array<String> preferredKeys;
+            if (secName == "Graphics")      preferredKeys = { "API", "VSync" };
+            else if (secName == "Window")   preferredKeys = { "Mode", "Width", "Height" };
+            else if (secName == "Input")    preferredKeys = { "Sensitivity" };
+
+            // 1. Write preferred keys first
+            for (const auto &pk : preferredKeys) {
+                auto kit = keys.find(pk);
+                if (kit != keys.end()) {
+                    output += FormatLineWithHint(secName, kit->first, kit->second) + "\n";
+                    processedKeys.insert(pk);
+                }
             }
+
+            // 2. Write any remaining custom keys
+            for (const auto &[k, v] : keys) {
+                if (!processedKeys.contains(k)) {
+                    output += FormatLineWithHint(secName, k, v) + "\n";
+                }
+            }
+
             output += "\n";
+            processedSections.insert(secName);
+        };
+
+        // Write preferred sections first
+        for (const auto &sec : orderedSections) {
+            writeSection(sec);
+        }
+
+        // Write any other custom sections that might exist
+        for (const auto &[secName, keys] : s_Data) {
+            if (!processedSections.contains(secName)) {
+                writeSection(secName);
+            }
         }
 
         BOOL ok = FileManager::Write(s_CurrentFile, output, true);
