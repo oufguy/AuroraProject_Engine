@@ -80,7 +80,7 @@ public:
         Crash::Init(StringFormat("{}Crash.log", appName));
 
         // 2. Config Manager -> "Settings.ini"
-        Config::Load(StringFormat("Settings.ini", appName));
+        Config::Load("Settings.ini");
 
         // 3. SDL3 Base Events
         SDL_Init(SDL_INIT_EVENTS);

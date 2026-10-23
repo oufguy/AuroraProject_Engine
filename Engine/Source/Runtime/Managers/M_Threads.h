@@ -61,9 +61,15 @@ private:
                 s_ActiveTasks++;
             }
 
-            // Execute the assigned task
+            // Execute the assigned task safely
             if (task) {
-                task();
+                try {
+                    task();
+                } catch (const std::exception &e) {
+                    LOG(Error, LogLevel::Core, "ThreadManager: Worker task threw an exception: {}", e.what());
+                } catch (...) {
+                    LOG(Error, LogLevel::Core, "ThreadManager: Worker task threw an unknown exception!");
+                }
             }
 
             {
@@ -139,7 +145,15 @@ public:
     // Example: Threads::Run([]() { Texture::Load("Dragon.png"); });
     static inline void Run(Task task) {
         if (!s_IsInitialized) {
-            if (task) task();
+            if (task) {
+                try {
+                    task();
+                } catch (const std::exception &e) {
+                    LOG(Error, LogLevel::Core, "ThreadManager::Run (Fallback): Exception thrown: {}", e.what());
+                } catch (...) {
+                    LOG(Error, LogLevel::Core, "ThreadManager::Run (Fallback): Unknown exception thrown!");
+                }
+            }
             return;
         }
 
@@ -192,7 +206,15 @@ public:
     static inline void Create_NamedThread(StringView name, Task task) {
         std::thread t([nameStr = String(name), task = std::move(task)]() {
             LOG(Info, LogLevel::Core, "Thread [{}] started.", nameStr);
-            if (task) task();
+            if (task) {
+                try {
+                    task();
+                } catch (const std::exception &e) {
+                    LOG(Error, LogLevel::Core, "Thread [{}]: Exception thrown: {}", nameStr, e.what());
+                } catch (...) {
+                    LOG(Error, LogLevel::Core, "Thread [{}]: Unknown exception thrown!", nameStr);
+                }
+            }
             LOG(Info, LogLevel::Core, "Thread [{}] terminated.", nameStr);
         });
         t.detach();

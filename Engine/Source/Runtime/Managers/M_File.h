@@ -31,7 +31,7 @@ private:
     static inline Mutex g_FileMutex;
 
 public:
-    // 1. Open and load a file into RAM (returns error message or empty if file doesn't exist)
+    // 1. Open and load a file into RAM (returns empty string "" if file doesn't exist or is empty)
     // Example: String data = File::Open("Assets/Ship.awotex");
     static inline String Open(const FilePath &filePath) {
         String Msg;
@@ -42,7 +42,7 @@ public:
         {
             Msg = StringFormat("FileManager::Open failed to open file: {}", filePath.string());
             LOG(Error, LogLevel::Core, "{}", Msg);
-            return { Msg };
+            return "";
         }
 
         file.seekg(0, FileEnd);
@@ -51,7 +51,7 @@ public:
         {
             Msg = StringFormat("FileManager::Open failed to read file (empty or error): {}", filePath.string());
             LOG(Error, LogLevel::Core, "{}", Msg);
-            return { Msg };
+            return "";
         }
 
         String content(static_cast<size_t>(size), '\0');

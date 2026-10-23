@@ -158,7 +158,7 @@ public:
 #endif
 	}
 
-private:
+public:
     // Immediately halts the engine, logs [FATAL], and writes the full report to Crash.log.
     // Automatically records the exact File, Line, and Function where Trigger() was called!
     // Example: Crash::Trigger("Vulkan GPU Device Lost!");

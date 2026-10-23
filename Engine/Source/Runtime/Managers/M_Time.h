@@ -33,7 +33,7 @@ public:
     // Core Frame / Tick Loop
     // ========================================================================
 
-    // Resets the Engine start clock (called automatically by Core::BeginPlay).
+    // Resets the Engine start clock (called automatically by Core::Start_Process).
     static inline void Init() {
         s_StartTime     = Clock::now();
         s_LastFrameTime = s_StartTime;

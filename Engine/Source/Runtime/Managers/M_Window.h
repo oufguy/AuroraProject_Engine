@@ -9,22 +9,21 @@
 // Cross-Platform Window Manager (SDL3 - Windows, Linux X11 & Wayland)
 // ============================================================================
 // Quick Usage Example:
-//   Core::BeginPlay("Client");
-//   Window::Create("Aurora Client");          // Size & Mode come from Config [Window] (auto-defaults!)
+//   Core::Start_Process("Client", ProcessType::Window, "Aurora Client");
 //
 //   while (Core::Tick()) {                     // Alt+F4 / [X] -> Core::Tick() returns false
 //       if (Window::Is_Minimized()) { Time::Sleep(10); continue; } // Don't waste CPU/GPU when minimized
-//       if (Window::Was_Resized())  { /* Recreate Vulkan swapchain with Window::Get_PixelSize() */ }
+//       if (Window::Was_Resized())  { /* Recreate swapchain with Window::Get_PixelSize() */ }
 //
 //       if (Keyboard::Get_Key(Key::F11, Input::Pressed)) {
 //           Window::Set_Mode(Window::Is_Fullscreen() ? Window::Windowed : Window::Borderless);
 //       }
 //   }
 //
-// Generated Config/Client.ini:
+// Generated Settings.ini:
 //   [Window]
 //   Height = 720
-//   Mode = Windowed        (Windowed / Borderless / Fullscreen)
+//   Mode = Windowed        ; Options: Windowed / Borderless / Fullscreen
 //   Width = 1280
 // ============================================================================
 class WindowManager {

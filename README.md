@@ -65,8 +65,7 @@ AuroraProject/
 │   │       ├── RHI/                 # Render Hardware Interface (All graphics headers in 1 click)
 │   │       │   ├── RHI_Manager.h    # RHIManager    (alias RHI:: / RHI_Manager::) — Master dynamic graphics dispatcher (Swap_API)
 │   │       │   ├── R_Vulkan.h       # VulkanRenderer  (alias R_Vulkan::)          — Vulkan 1.3/1.4 Dynamic Rendering & Sync 2
-│   │       │   ├── R_DirectX.h      # DirectXRenderer (alias R_DirectX::)         — DirectX 11 / DXGI pure dynamic runtime loader
-│   │       │   └── R_DirectX.cpp    # DirectX 11 backend implementation (zero Windows OS headers / static libs)
+│   │       │   └── R_DirectX.h      # DirectXRenderer (alias R_DirectX::)         — DirectX 11 / DXGI pure dynamic runtime loader
 │   │       │
 │   │       ├── Audio/               # Sound system abstraction
 │   │       ├── Framework/           # Entity/Component model, application loop, world structure
