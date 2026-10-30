@@ -1,4 +1,4 @@
-# Aurora Engine (v0.1)
+# Aurora Engine (v0.1a)
 
 A lightweight, high-performance, cross-platform C++23 game engine designed with an Unreal Engine-style developer experience without the bloat of an external editor.
 
