@@ -1,0 +1,15 @@
+# Build & CMake output folders
+[Bb]uild/
+[Oo]ut/
+
+# Keep your private Game folder off the public Engine repo!
+[Gg]ame/
+
+# Visual Studio local cache & user settings
+.vs/
+*.user
+*.suo
+
+# Log & Crash files
+*.log
+[Ll]ogs/
